@@ -426,8 +426,6 @@ export default function App() {
                   });
               }
 
-              alert('Dados do calendário carregados com sucesso!');
-
           } catch (error) {
               console.error("Erro ao carregar o arquivo JSON:", error);
               alert("Erro ao carregar o arquivo. Verifique se é um arquivo JSON válido gerado por este aplicativo.");
