@@ -1,5 +1,5 @@
-carga horária
-calcular data do final do curso sozinho com base na carga horária e nos dias selecionados
-puxar os feriados nacionais automaticamente
-opção de lançar os estaduais e municipais
-opção de por férias, recesso ou licença pra levar em conta no cálculo final
+Faça com que seja possível adicionar a carga horária do curso e a carga horaria das UC.
+Faça com que o sistema tenha um botão para calcular data do final do curso automaticamente com base na carga horária e nos dias selecionados.
+Faça com que ele puxe os feriados nacionais automaticamente e considere no cálculo.
+Faça com opção de lançar os estaduais e municipais personalizados e considere no cálculo
+Faça com que tenha a opção de por férias, recesso ou licença pra levar em conta no cálculo final
