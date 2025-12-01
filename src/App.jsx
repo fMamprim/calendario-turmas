@@ -1,21 +1,19 @@
-// src/App.jsx (Versão Final e Corrigida)
+// src/App.jsx (Versão Corrigida para Canvas - Sem Dependências Externas)
 
-// 1. IMPORTS - Todos juntos no topo do arquivo
+// 1. IMPORTS
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
-import senaiLogo from './images/senai-logo.png';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+// Substituindo FontAwesome por Lucide-React (Nativo)
 import { 
-    faPlusCircle, faChevronLeft, faChevronRight, 
-    faEdit, faTimes, faBan, faCheckCircle, faUndo, 
-    faUpload, faDownload, faFilePdf, 
-    faFloppyDisk,
-    faPlus
-} from '@fortawesome/free-solid-svg-icons';
+    PlusCircle, ChevronLeft, ChevronRight, 
+    Edit2, X, Ban, CheckCircle, RotateCcw, 
+    Upload, Download, Printer, 
+    Save, Plus, Calendar as CalendarIcon
+} from 'lucide-react';
 
+// Placeholder para o logo
+const senaiLogo = "https://upload.wikimedia.org/wikipedia/commons/8/8c/SENAI_S%C3%A3o_Paulo_logo.png"; 
 
-// 2. CONSTANTES E COMPONENTES AUXILIARES - Definidos ANTES do componente principal App
+// 2. CONSTANTES E COMPONENTES AUXILIARES
 const DEFAULT_COLORS = {
   class: 'bg-blue-200',
   holiday: 'bg-red-300',
@@ -23,8 +21,6 @@ const DEFAULT_COLORS = {
   emenda: 'bg-purple-200',
   weekend: 'bg-gray-200',
 };
-
-
 
 const COLOR_PALETTE = [
   'bg-blue-300', 'bg-green-300', 'bg-red-300', 'bg-yellow-300', 'bg-purple-300',
@@ -40,6 +36,11 @@ const CURRICULAR_UNIT_COLORS = [
 
 const WEEK_DAYS_LABELS = { 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb' };
 
+const MONTH_LABELS = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
 const formatDateToISO = (date) => {
   if (!date) return null;
   const d = new Date(date);
@@ -47,7 +48,7 @@ const formatDateToISO = (date) => {
 };
 
 const ColorPicker = ({ position, onSelectColor, onClose }) => (
-  <div className="fixed z-20 p-2 bg-white border rounded-lg shadow-xl" style={{ top: position.y, left: position.x }} onMouseLeave={onClose}>
+  <div className="fixed z-50 p-2 bg-white border rounded-lg shadow-xl" style={{ top: position.y, left: position.x }} onMouseLeave={onClose}>
     <div className="grid grid-cols-4 gap-2">
       {COLOR_PALETTE.map(colorClass => <div key={colorClass} className={`w-8 h-8 rounded-full cursor-pointer hover:scale-110 transition-transform ${colorClass}`} onClick={() => onSelectColor(colorClass)} />)}
     </div>
@@ -65,7 +66,7 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
   };
 
   return (
-    <div className="p-6 bg-gray-50 rounded-xl shadow-md space-y-6">
+    <div className="p-6 bg-gray-50 rounded-xl shadow-md space-y-6 print:hidden">
         <h2 className="text-2xl font-bold text-gray-700">Configurações Gerais</h2>
         <div>
             <label htmlFor="turmaName" className="block text-sm font-medium text-gray-600 mb-1">Nome da Turma</label>
@@ -97,7 +98,7 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
             <div className="flex items-center gap-2">
                 <input type="date" id="holiday" value={holidayInput} onChange={(e) => setHolidayInput(e.target.value)} className="flex-grow p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500" />
                 <button type="submit" className="px-4 py-2 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors">
-                  <FontAwesomeIcon icon={faPlus} className="mr-2" />Adicionar
+                  <Plus className="w-4 h-4" />
                 </button>
             </div>
         </form>
@@ -106,7 +107,7 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
             <div className="flex items-center gap-2">
                 <input type="date" id="makeup" value={makeupInput} onChange={(e) => setMakeupInput(e.target.value)} className="flex-grow p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
                 <button type="submit" className="px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition-colors">
-                  <FontAwesomeIcon icon={faPlus} className="mr-2" />Adicionar
+                  <Plus className="w-4 h-4" />
                 </button>
             </div>
         </form>
@@ -156,7 +157,7 @@ const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancel
     };
 
     return (
-        <div className="p-6 bg-gray-50 rounded-xl shadow-md space-y-6">
+        <div className="p-6 bg-gray-50 rounded-xl shadow-md space-y-6 print:hidden">
             <h2 className="text-2xl font-bold text-gray-700">{isEditing ? 'Editar Unidade Curricular' : 'Adicionar Unidade Curricular'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -192,14 +193,12 @@ const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancel
                     {isEditing && (
                         <button type="button" onClick={onCancelEdit} className="w-full px-4 py-2 bg-gray-500 text-white font-semibold rounded-md hover:bg-gray-600 transition-colors">Cancelar</button>
                     )}
-                    <button type="submit" className="w-full px-4 py-2 bg-teal-600 text-white font-semibold rounded-md hover:bg-teal-700 transition-colors">
+                    <button type="submit" className="w-full px-4 py-2 bg-teal-600 text-white font-semibold rounded-md hover:bg-teal-700 transition-colors flex items-center justify-center">
                       {isEditing ? (
-                        <>
-                            Salvar Alterações
-                        </>
+                        <>Salvar Alterações</>
                       ) : (
                         <>
-                            <FontAwesomeIcon icon={faPlus} className="mr-2" /> 
+                            <Plus className="w-4 h-4 mr-2" /> 
                             Adicionar UC
                         </>
                       )}
@@ -237,20 +236,23 @@ const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWe
   }, [year, month, dates, colors, individualDayColors, classWeekDays]);
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg">
-      <div className="grid grid-cols-7 gap-2 text-center font-bold text-gray-600">
-        {Object.values(WEEK_DAYS_LABELS).map(day => <div key={day}>{day}</div>)}
+    <div className="bg-white p-6 rounded-xl shadow-lg break-inside-avoid mb-6 print:shadow-none print:border print:border-gray-300">
+      <div className="mb-4 text-center">
+        <h3 className="text-xl font-bold text-gray-700 uppercase tracking-wide">{MONTH_LABELS[month]} <span className="text-gray-400">{year}</span></h3>
       </div>
-      <div className="grid grid-cols-7 gap-1 mt-2">
-        {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="border rounded-md"></div>)}
+      <div className="grid grid-cols-7 gap-2 text-center font-bold text-gray-600 mb-2">
+        {Object.values(WEEK_DAYS_LABELS).map(day => <div key={day} className="text-xs uppercase">{day}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="border-none"></div>)}
         {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
           const day = dayIndex + 1;
           const { className } = getDayStyle(day);
           const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
           
           return (
-            <div key={day} onClick={(e) => onDayClick(e, 'individual', formatDateToISO(new Date(year, month, day)))} className={`h-16 md:h-20 flex items-center justify-center border rounded-md transition-all duration-200 cursor-pointer hover:shadow-md ${className} ${isToday ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}>
-              <span className="text-lg font-medium">{dayIndex + 1}</span>
+            <div key={day} onClick={(e) => onDayClick(e, 'individual', formatDateToISO(new Date(year, month, day)))} className={`h-10 md:h-14 flex items-center justify-center border rounded-md transition-all duration-200 cursor-pointer hover:shadow-md ${className} ${isToday ? 'ring-2 ring-offset-2 ring-blue-500 print:ring-0' : ''} print:h-12 print:text-sm`}>
+              <span className="text-sm font-medium">{dayIndex + 1}</span>
             </div>
           );
         })}
@@ -273,9 +275,7 @@ export default function App() {
   const [individualDayColors, setIndividualDayColors] = useState({});
   const [classWeekDays, setClassWeekDays] = useState([1, 2, 3, 4, 5]);
   const [colorPickerState, setColorPickerState] = useState({ visible: false, position: null, target: null });
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [editingUnit, setEditingUnit] = useState(null);
-  const calendarPdfRef = useRef(null);
 
   const handleDateChange = (e) => setDates(prev => ({ ...prev, [e.target.name]: e.target.value }));
   
@@ -325,25 +325,18 @@ export default function App() {
 
   const handleAddUnit = (newUnit) => {
     setDates(prev => {
-        const newUnitWithIdAndColor = {
-            ...newUnit,
-            id: Date.now(),
-            color: CURRICULAR_UNIT_COLORS[prev.curricularUnits.length % CURRICULAR_UNIT_COLORS.length]
-        };
+        const newUnitWithIdAndColor = { ...newUnit, id: Date.now(), color: CURRICULAR_UNIT_COLORS[prev.curricularUnits.length % CURRICULAR_UNIT_COLORS.length] };
         return { ...prev, curricularUnits: [...prev.curricularUnits, newUnitWithIdAndColor] };
     });
   };
 
   const handleUpdateUnit = (updatedUnit) => {
-      setDates(prev => ({
-          ...prev,
-          curricularUnits: prev.curricularUnits.map(unit => unit.id === updatedUnit.id ? updatedUnit : unit)
-      }));
-      setEditingUnit(null);
+    setDates(prev => ({ ...prev, curricularUnits: prev.curricularUnits.map(unit => unit.id === updatedUnit.id ? updatedUnit : unit) }));
+    setEditingUnit(null);
   };
 
   const handleRemoveUnit = (unitId) => {
-      setDates(prev => ({ ...prev, curricularUnits: prev.curricularUnits.filter(u => u.id !== unitId) }));
+    setDates(prev => ({ ...prev, curricularUnits: prev.curricularUnits.filter(u => u.id !== unitId) }));
   };
 
   const handleClassWeekDaysChange = (dayIndex) => setClassWeekDays(prev => prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex].sort());
@@ -352,43 +345,29 @@ export default function App() {
     event.stopPropagation();
     setColorPickerState({ visible: true, position: { x: event.clientX, y: event.clientY }, target: { type, identifier: targetIdentifier } });
   };
-  
+
   const handleSelectColor = (colorClass) => {
-      const { type, identifier } = colorPickerState.target;
-      if (type === 'global') {
-          setColors(prev => ({ ...prev, [identifier]: colorClass }));
-      } else if (type === 'individual') {
-          setIndividualDayColors(prev => ({ ...prev, [identifier]: colorClass }));
-      } else if (type === 'curricular') {
-          setDates(prev => ({
-              ...prev,
-              curricularUnits: prev.curricularUnits.map(unit => unit.id === identifier ? { ...unit, color: colorClass } : unit)
-          }));
-      }
-      setColorPickerState({ visible: false, position: null, target: null });
+    const { type, identifier } = colorPickerState.target;
+    if (type === 'global') {
+        setColors(prev => ({ ...prev, [identifier]: colorClass }));
+    } else if (type === 'individual') {
+        setIndividualDayColors(prev => ({ ...prev, [identifier]: colorClass }));
+    } else if (type === 'curricular') {
+        setDates(prev => ({ ...prev, curricularUnits: prev.curricularUnits.map(unit => unit.id === identifier ? { ...unit, color: colorClass } : unit) }));
+    }
+    setColorPickerState({ visible: false, position: null, target: null });
   };
 
-  const handleRestoreColors = () => { setColors(DEFAULT_COLORS); setIndividualDayColors({}); };
+  const handleRestoreColors = () => {
+    setColors(DEFAULT_COLORS);
+    setIndividualDayColors({});
+  };
 
   const handleExportJson = () => {
-    const dataToSave = {
-        turmaName,
-        dates,
-        colors,
-        individualDayColors,
-        classWeekDays,
-    };
-
-    const jsonString = JSON.stringify(dataToSave, (key, value) => {
-        if (value instanceof Set) {
-            return [...value];
-        }
-        return value;
-    }, 2);
-
+    const dataToSave = { turmaName, dates: { ...dates, holidays: [...dates.holidays], makeupDays: [...dates.makeupDays], emendas: [...dates.emendas] }, colors, individualDayColors, classWeekDays, };
+    const jsonString = JSON.stringify(dataToSave, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement('a');
     link.href = url;
     link.download = `${turmaName.replace(/ /g, '_') || 'calendario'}.json`;
@@ -396,311 +375,223 @@ export default function App() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-};
-
-  const handleImportJson = (event) => {
-      const file = event.target.files[0];
-      if (!file) {
-          return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-          try {
-              const text = e.target.result;
-              const loadedData = JSON.parse(text);
-
-              setTurmaName(loadedData.turmaName || '');
-              setColors(loadedData.colors || DEFAULT_COLORS);
-              setIndividualDayColors(loadedData.individualDayColors || {});
-              setClassWeekDays(loadedData.classWeekDays || [1, 2, 3, 4, 5]);
-
-              if (loadedData.dates) {
-                  setDates({
-                      startDate: loadedData.dates.startDate,
-                      endDate: loadedData.dates.endDate,
-                      holidays: new Set(loadedData.dates.holidays || []),
-                      makeupDays: new Set(loadedData.dates.makeupDays || []),
-                      emendas: new Set(loadedData.dates.emendas || []),
-                      curricularUnits: loadedData.dates.curricularUnits || [],
-                  });
-              }
-
-          } catch (error) {
-              console.error("Erro ao carregar o arquivo JSON:", error);
-              alert("Erro ao carregar o arquivo. Verifique se é um arquivo JSON válido gerado por este aplicativo.");
-          }
-      };
-      reader.readAsText(file);
-
-      event.target.value = '';
   };
 
-  const handleDownloadPdf = async () => {
-    // 1. Validação inicial e preparação
-    if (!dates.startDate || !dates.endDate) {
-        alert("Por favor, defina a data de início e fim do semestre primeiro.");
-        return;
-    }
-    setIsGeneratingPdf(true);
-    const pdfDoc = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdfDoc.internal.pageSize.getWidth();
-    const pdfHeight = pdfDoc.internal.pageSize.getHeight();
-    const originalDate = currentDate;
-
-    // Função auxiliar para desenhar a legenda em qualquer página
-    const drawLegend = (pdf, startY) => {
-        pdf.setFontSize(10).setFont(undefined, 'bold');
-        pdf.text('Legenda:', 14, startY);
-        let currentY = startY + 6;
-        let currentX = 14;
-        const itemWidth = 55;
-
-        const addLegendItem = (colorClass, label) => {
-            if (currentX + itemWidth > pdfWidth - 10) {
-                currentX = 14;
-                currentY += 7;
+  const handleImportJson = (event) => {
+    const file = event.target.files[0];
+    if (!file) { return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const text = e.target.result;
+            const loadedData = JSON.parse(text);
+            setTurmaName(loadedData.turmaName || '');
+            setColors(loadedData.colors || DEFAULT_COLORS);
+            setIndividualDayColors(loadedData.individualDayColors || {});
+            setClassWeekDays(loadedData.classWeekDays || [1, 2, 3, 4, 5]);
+            if (loadedData.dates) {
+                setDates({
+                    startDate: loadedData.dates.startDate,
+                    endDate: loadedData.dates.endDate,
+                    holidays: new Set(loadedData.dates.holidays || []),
+                    makeupDays: new Set(loadedData.dates.makeupDays || []),
+                    emendas: new Set(loadedData.dates.emendas || []),
+                    curricularUnits: loadedData.dates.curricularUnits || [],
+                });
             }
-            if (currentY > pdfHeight - 15) return; // Não desenha se não couber na página
-
-            const tempDiv = document.createElement('div');
-            tempDiv.className = colorClass;
-            document.body.appendChild(tempDiv);
-            const rgbColor = window.getComputedStyle(tempDiv).backgroundColor;
-            document.body.removeChild(tempDiv);
-            const [r, g, b] = rgbColor.match(/\d+/g).map(Number);
-
-            pdf.setDrawColor(0);
-            pdf.setFillColor(r, g, b);
-            pdf.rect(currentX, currentY - 3, 4, 4, 'F');
-            
-            pdf.setFontSize(8).setFont(undefined, 'normal');
-            pdf.text(label, currentX + 7, currentY);
-            currentX += itemWidth;
-        };
-        
-        addLegendItem(colors.class, 'Dia de Aula');
-        dates.curricularUnits.forEach(unit => addLegendItem(unit.color, unit.name));
-        addLegendItem(colors.holiday, 'Feriado');
-        addLegendItem(colors.emenda, 'Emenda');
-        addLegendItem(colors.makeup, 'Reposição');
-        addLegendItem(colors.weekend, 'Sem Aula');
+        } catch (error) {
+            console.error("Erro ao carregar o arquivo JSON:", error);
+            alert("Erro ao carregar o arquivo. Verifique se é um arquivo JSON válido gerado por este aplicativo.");
+        }
     };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
 
-    try {
-        // 2. Loop para gerar cada mês
-        const start = new Date(dates.startDate + 'T12:00:00');
-        const end = new Date(dates.endDate + 'T12:00:00');
-        let loopDate = new Date(start.getFullYear(), start.getMonth(), 1);
+  const handlePrint = () => {
+    // Usamos a função nativa de impressão, que permite "Salvar como PDF"
+    window.print();
+  };
 
-        while (loopDate <= end) {
-            await new Promise(resolve => {
-                setCurrentDate(new Date(loopDate));
-                setTimeout(resolve, 150);
-            });
-
-            const calendarElement = calendarPdfRef.current;
-            if (calendarElement) {
-                const canvas = await html2canvas(calendarElement, {
-                    scale: 2,
-                    onclone: (documentClone) => {
-                        // Encontra todos os elementos marcados com .pdf-hide no clone e os esconde
-                        documentClone.querySelectorAll('.pdf-hide').forEach(el => {
-                            el.style.visibility = 'hidden';
-                        });
-                    }
-                });
-                const imgData = canvas.toDataURL('image/png');
-                const imgHeight = (canvas.height * (pdfWidth - 20)) / canvas.width;
-
-                if (loopDate.getTime() !== new Date(start.getFullYear(), start.getMonth(), 1).getTime()) {
-                    pdfDoc.addPage();
-                }
-
-                // --- AJUSTE: Adicionando o logo em todas as páginas ---
-                pdfDoc.addImage(senaiLogo, 'PNG', pdfWidth - 35, 8, 25, 6.4);
-
-                pdfDoc.setFontSize(16).setFont(undefined, 'bold');
-                pdfDoc.text(turmaName || 'Calendário Escolar', 14, 15);
-                
-                const monthName = loopDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-                pdfDoc.setFontSize(12).setFont(undefined, 'normal');
-                pdfDoc.text(monthName.charAt(0).toUpperCase() + monthName.slice(1), 14, 22);
-
-                pdfDoc.addImage(imgData, 'PNG', 10, 30, pdfWidth - 20, imgHeight);
-
-                // --- AJUSTE: Desenhando a legenda em todas as páginas ---
-                drawLegend(pdfDoc, imgHeight + 40);
-            }
-            loopDate.setMonth(loopDate.getMonth() + 1);
-        }
-
-        // 3. --- AJUSTE: Adiciona a página final com a lista de datas ---
-        pdfDoc.addPage();
-        pdfDoc.addImage(senaiLogo, 'PNG', pdfWidth - 35, 8, 25, 6.4);
-        pdfDoc.setFontSize(16).setFont(undefined, 'bold');
-        pdfDoc.text('Datas Importantes', 14, 20);
-        let currentY = 30;
-
-        const renderListToPdf = (title, dateSet) => {
-            if (dateSet.size > 0) {
-                if (currentY > pdfHeight - 25) { pdfDoc.addPage(); currentY = 20; }
-                pdfDoc.setFontSize(12).setFont(undefined, 'bold');
-                pdfDoc.text(title, 14, currentY);
-                currentY += 7;
-                
-                pdfDoc.setFontSize(10).setFont(undefined, 'normal');
-                [...dateSet].sort().forEach(date => {
-                    if (currentY > pdfHeight - 15) { pdfDoc.addPage(); currentY = 20; }
-                    pdfDoc.text(`- ${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}`, 18, currentY);
-                    currentY += 6;
-                });
-                currentY += 4;
-            }
-        };
-        if (dates.startDate) {
-            renderListToPdf('Início do Curso:', new Set([dates.startDate]));
-        }
-        if (dates.endDate) {
-            renderListToPdf('Término do Curso:', new Set([dates.endDate]));
-        }
-        renderListToPdf('Feriados:', dates.holidays);
-        renderListToPdf('Emendas de Feriado:', dates.emendas);
-        renderListToPdf('Reposição de Aulas:', dates.makeupDays);
-        
-        // 4. Salva o PDF
-        pdfDoc.save(`${turmaName.replace(/ /g, '_') || 'calendario'}.pdf`);
-
-    } catch (error) {
-        console.error("Erro ao gerar o PDF:", error);
-        alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
-    } finally {
-        // 5. Restaura a data original e finaliza o processo
-        setCurrentDate(originalDate);
-        setIsGeneratingPdf(false);
+  // Helper para gerar a lista de meses entre as datas
+  const monthsList = useMemo(() => {
+    if (!dates.startDate || !dates.endDate) {
+        // Se não houver datas, mostra o mês atual
+        return [{ month: new Date().getMonth(), year: new Date().getFullYear() }];
     }
-};
+    
+    const start = new Date(dates.startDate);
+    const end = new Date(dates.endDate);
+    const months = [];
+    
+    let current = new Date(start.getFullYear(), start.getMonth(), 1);
+    // Adicionar margem de segurança para o fim
+    const endDate = new Date(end.getFullYear(), end.getMonth(), 1);
 
-  const month = currentDate.getMonth();
-  const year = currentDate.getFullYear();
-  const monthName = currentDate.toLocaleString('pt-BR', { month: 'long' });
-
-  const renderDateList = (list, type, title) => (
-    <div className="p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-bold text-gray-600 mb-2">{title}</h3>
-        <ul className="space-y-1 max-h-32 overflow-y-auto">
-            {[...list].sort().map(date => (
-                <li key={date} className="flex justify-between items-center text-sm p-1 rounded bg-white shadow-sm">
-                    <span>{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                    <button onClick={() => removeDateFromList(type, date)} className="text-red-500 hover:text-red-700 font-bold text-lg">&times;</button>
-                </li>
-            ))}
-        </ul>
-    </div>
-  );
+    while (current <= endDate) {
+        months.push({ month: current.getMonth(), year: current.getFullYear() });
+        current.setMonth(current.getMonth() + 1);
+    }
+    return months;
+  }, [dates.startDate, dates.endDate]);
 
   return (
-    <>
-      <div className="bg-gray-100 min-h-screen p-4 sm:p-6 lg:p-8 font-sans" onClick={() => setColorPickerState({visible: false})}>
-        <div className="max-w-7xl mx-auto">
-          <header className="text-center mb-8"><h1 className="text-4xl font-extrabold text-gray-800">Calendário Escolar Interativo</h1></header>
+    <div className="min-h-screen bg-slate-100 p-4 font-sans text-slate-800 print:bg-white print:p-0" onClick={() => colorPickerState.visible && setColorPickerState({visible: false, position: null, target: null})}>
+        {/* Estilos específicos para impressão */}
+        <style>{`
+          @media print {
+            body { -webkit-print-color-adjust: exact; }
+            .print\\:hidden { display: none !important; }
+            .print\\:shadow-none { box-shadow: none !important; }
+            .print\\:border { border: 1px solid #ddd !important; }
+            .print\\:h-12 { height: 3rem !important; }
+            .print\\:text-sm { font-size: 0.875rem !important; }
+            .print\\:p-0 { padding: 0 !important; }
+          }
+        `}</style>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 space-y-6">
-              <CalendarControls turmaName={turmaName} onTurmaNameChange={(e) => setTurmaName(e.target.value)} onDatesChange={handleDateChange} onAddHoliday={addHolidayAndBridge} onAddMakeupDay={addMakeupDay} classWeekDays={classWeekDays} onClassWeekDaysChange={handleClassWeekDaysChange} />
-              <CurricularUnitControls onAddUnit={handleAddUnit} onUpdateUnit={handleUpdateUnit} editingUnit={editingUnit} onCancelEdit={() => setEditingUnit(null)} generalWeekDays={classWeekDays} />
-              {dates.curricularUnits.length > 0 && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-bold text-gray-600 mb-2">UCs Adicionadas</h3>
-                    <ul className="space-y-2">
-                        {dates.curricularUnits.map(unit => (
-                            <li key={unit.id} className="flex justify-between items-center text-sm p-2 rounded bg-white shadow-sm">
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-4 h-4 rounded-full ${unit.color}`}></div>
-                                    <span>{unit.name}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => setEditingUnit(unit)} className="text-blue-500 hover:text-blue-700 font-bold text-xs">
-                                      <FontAwesomeIcon icon={faEdit} /> Editar
-                                    </button>
-                                    <button onClick={() => handleRemoveUnit(unit.id)} className="text-red-500 hover:text-red-700 font-bold text-lg">
-                                      <FontAwesomeIcon icon={faTimes} />
-                                    </button>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-              )}
-              {renderDateList(dates.holidays, 'holidays', 'Feriados Marcados')}
-              {renderDateList(dates.makeupDays, 'makeupDays', 'Reposições Marcadas')}
-            </div>
-
-            <div className="lg:col-span-2">
-              <div ref={calendarPdfRef}>
-                <div className="flex justify-between items-center mb-4 p-4 bg-white rounded-lg shadow">
-                  <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors pdf-hide">
-                    <FontAwesomeIcon icon={faChevronLeft} className="mr-2" /> Anterior
-                  </button>
-                  <h2 className="text-2xl font-bold text-red-700 capitalize">{monthName} de {year}</h2>
-                  <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors pdf-hide">
-                    Próximo <FontAwesomeIcon icon={faChevronRight} className="ml-2" />
-                  </button>
-                </div>
-                <CalendarGrid month={month} year={year} dates={dates} colors={colors} individualDayColors={individualDayColors} classWeekDays={classWeekDays} onDayClick={handleOpenColorPicker} />
-              </div>
-               <div className="mt-4 p-4 bg-white rounded-lg shadow-sm">
-                <h3 className="font-semibold text-lg mb-3">Legenda (clique para alterar a cor)</h3>
-                <div className="flex flex-wrap gap-x-6 gap-y-3">
-                    {/* Sua legenda... (não precisa mexer aqui) */}
-                    <div onClick={(e) => handleOpenColorPicker(e, 'global', 'class')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.class}`}></div><span>Dia de Aula</span></div>
-                    {dates.curricularUnits.map(unit => (
-                        <div key={unit.id} onClick={(e) => handleOpenColorPicker(e, 'curricular', unit.id)} className="flex items-center gap-2 cursor-pointer">
-                          <div className={`w-5 h-5 rounded shadow-inner ${unit.color}`}></div><span>{unit.name}</span>
-                        </div>
-                    ))}
-                    <div onClick={(e) => handleOpenColorPicker(e, 'global', 'holiday')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.holiday}`}></div><span>Feriado</span></div>
-                    <div onClick={(e) => handleOpenColorPicker(e, 'global', 'emenda')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.emenda}`}></div><span>Emenda</span></div>
-                    <div onClick={(e) => handleOpenColorPicker(e, 'global', 'makeup')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.makeup}`}></div><span>Reposição</span></div>
-                    <div onClick={(e) => handleOpenColorPicker(e, 'global', 'weekend')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.weekend}`}></div><span>Sem Aula</span></div>
-                </div>
-                <button onClick={handleRestoreColors} className="mt-4 w-full py-2 bg-gray-500 text-white font-semibold rounded-md hover:bg-gray-600 transition-colors">
-                  <FontAwesomeIcon icon={faUndo} className="mr-2" /> Restaurar Cores Padrão
-                  </button>
-                
-                {/* --- INÍCIO DA PARTE NOVA QUE VOCÊ VAI ADICIONAR --- */}
-
-                {/* Input de arquivo escondido, que será acionado pelo botão "Carregar" */}
-                <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept=".json"
-                    onChange={handleImportJson}
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 print:block">
+            
+            {/* Sidebar de Configurações - Escondido na impressão */}
+            <div className="lg:col-span-4 space-y-6 overflow-y-auto max-h-screen pb-20 custom-scrollbar print:hidden">
+                 <div className="bg-white p-6 rounded-xl shadow-md flex justify-center items-center">
+                    <img src={senaiLogo} alt="SENAI Logo" className="h-16 object-contain" />
+                 </div>
+                 
+                 <CalendarControls 
+                    turmaName={turmaName} 
+                    onTurmaNameChange={(e) => setTurmaName(e.target.value)} 
+                    onDatesChange={handleDateChange} 
+                    onAddHoliday={addHolidayAndBridge} 
+                    onAddMakeupDay={addMakeupDay} 
+                    classWeekDays={classWeekDays} 
+                    onClassWeekDaysChange={handleClassWeekDaysChange} 
                 />
 
-                {/* Botões para Salvar e Carregar */}
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                    <button onClick={() => fileInputRef.current.click()} className="w-full py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors">
-                        <FontAwesomeIcon icon={faUpload} className="mr-2" /> Carregar (JSON)
-                    </button>
-                    <button onClick={handleExportJson} className="w-full py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition-colors">
-                        <FontAwesomeIcon icon={faDownload} className="mr-2" /> Salvar (JSON)
-                    </button>
+                 <CurricularUnitControls 
+                    onAddUnit={handleAddUnit} 
+                    onUpdateUnit={handleUpdateUnit} 
+                    editingUnit={editingUnit} 
+                    onCancelEdit={() => setEditingUnit(null)} 
+                    generalWeekDays={classWeekDays} 
+                />
+
+                {/* Lista de UCs Adicionadas */}
+                <div className="bg-white p-6 rounded-xl shadow-md">
+                    <h3 className="text-lg font-bold mb-4 text-gray-700">Unidades Curriculares</h3>
+                    {dates.curricularUnits.length === 0 ? (
+                        <p className="text-gray-500 text-sm">Nenhuma UC adicionada.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {dates.curricularUnits.map(unit => (
+                                <div key={unit.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-gray-50">
+                                    <div className="flex items-center gap-2">
+                                        <div 
+                                            className={`w-4 h-4 rounded-full cursor-pointer border border-gray-300 ${unit.color}`} 
+                                            onClick={(e) => handleOpenColorPicker(e, 'curricular', unit.id)}
+                                            title="Clique para mudar a cor"
+                                        />
+                                        <div className="text-sm">
+                                            <span className="font-semibold block">{unit.name}</span>
+                                            <span className="text-xs text-gray-500">{new Date(unit.startDate).toLocaleDateString()} - {new Date(unit.endDate).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <button onClick={() => setEditingUnit(unit)} className="p-1 text-blue-500 hover:text-blue-700">
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => handleRemoveUnit(unit.id)} className="p-1 text-red-500 hover:text-red-700">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                {/* --- FIM DA PARTE NOVA --- */}
-                
-                <button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="mt-2 w-full py-2 bg-teal-600 text-white font-semibold rounded-md hover:bg-teal-700 transition-colors disabled:bg-teal-300 disabled:cursor-not-allowed">
-                    <FontAwesomeIcon icon={faFilePdf} className="mr-2" /> {isGeneratingPdf ? 'Gerando PDF...' : 'Baixar Calendário (PDF)'}
-                </button>
+                {/* Área de Botões */}
+                <div className="bg-white p-6 rounded-xl shadow-md space-y-4">
+                    <h3 className="text-lg font-bold text-gray-700">Ações</h3>
+                    
+                    {/* Input de arquivo oculto */}
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        style={{ display: 'none' }} 
+                        accept=".json" 
+                        onChange={handleImportJson} 
+                    />
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => fileInputRef.current.click()} className="w-full py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center">
+                            <Upload className="w-4 h-4 mr-2" /> Carregar JSON
+                        </button>
+                        <button onClick={handleExportJson} className="w-full py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition-colors flex items-center justify-center">
+                            <Download className="w-4 h-4 mr-2" /> Salvar JSON
+                        </button>
+                    </div>
+
+                    <button onClick={handleRestoreColors} className="w-full py-2 border border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center">
+                        <RotateCcw className="w-4 h-4 mr-2" /> Restaurar Cores
+                    </button>
+                    
+                    <button 
+                        onClick={handlePrint} 
+                        className="w-full py-3 bg-teal-600 text-white font-semibold rounded-md hover:bg-teal-700 transition-colors shadow-sm flex items-center justify-center"
+                    >
+                        <Printer className="w-4 h-4 mr-2" /> 
+                        Salvar PDF / Imprimir
+                    </button>
+                </div>
             </div>
-              </div>
-          </div>
+            
+            {/* Área Principal - Calendário */}
+            <div className="lg:col-span-8 bg-white p-8 rounded-xl shadow-xl overflow-x-auto min-h-[600px] print:col-span-12 print:shadow-none print:p-0 print:overflow-visible">
+                <div className="text-center mb-8 border-b pb-4">
+                    {/* Logo só aparece na impressão na parte de cima */}
+                    <img src={senaiLogo} alt="SENAI Logo" className="h-12 object-contain mx-auto mb-2 hidden print:block" />
+                    
+                    <h1 className="text-3xl font-bold text-gray-800 uppercase tracking-wider mb-2">{turmaName || 'Calendário Acadêmico'}</h1>
+                    {dates.startDate && dates.endDate && (
+                        <p className="text-gray-500">
+                            {new Date(dates.startDate).toLocaleDateString()} a {new Date(dates.endDate).toLocaleDateString()}
+                        </p>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-3 print:gap-4">
+                    {monthsList.map((m, idx) => (
+                        <CalendarGrid 
+                            key={`${m.month}-${m.year}`}
+                            month={m.month}
+                            year={m.year}
+                            dates={dates}
+                            colors={colors}
+                            individualDayColors={individualDayColors}
+                            classWeekDays={classWeekDays}
+                            onDayClick={handleOpenColorPicker}
+                        />
+                    ))}
+                </div>
+
+                {(!dates.startDate || !dates.endDate) && (
+                    <div className="text-center py-20 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 mt-4 print:hidden">
+                        <PlusCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p>Defina a Data de Início e Fim para visualizar todos os meses.</p>
+                    </div>
+                )}
+            </div>
         </div>
         
-        {colorPickerState.visible && <ColorPicker position={colorPickerState.position} onSelectColor={handleSelectColor} onClose={() => setColorPickerState({ visible: false })} />}
-      </div>
-    </>
+        {/* Color Picker Flutuante */}
+        {colorPickerState.visible && (
+            <ColorPicker 
+                position={colorPickerState.position} 
+                onSelectColor={handleSelectColor} 
+                onClose={() => setColorPickerState({ visible: false, position: null, target: null })} 
+            />
+        )}
+    </div>
   );
 }
