@@ -1,5 +1,0 @@
-carga horária
-calcular data do final do curso sozinho com base na carga horária e nos dias selecionados
-puxar os feriados nacionais automaticamente
-opção de lançar os estaduais e municipais
-opção de por férias, recesso ou licença pra levar em conta no cálculo final
