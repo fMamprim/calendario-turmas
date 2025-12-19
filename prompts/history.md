@@ -25,8 +25,11 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
     - Criação da pasta `prompts/`.
     - Inicialização do arquivo `history.md` com o retroativo desta conversa.
 
-### 🟢 Prompt 5: Consulta Obrigatória ao Roadmap
-- **Usuário (Literal):** "Mais uma regra. você irá sempre consultar o roadmap para não se perder do planejamento futuro."
+### 🟢 Prompt 6: Fase 1 - Cores e Reposições
+- **Usuário (Literal):** "Quando eu clico em um dia no calendário, eu posso trocar a cor. Faça com que a partir de agora eu não possa mais trocar a cor dos dias individuais, mas somente das legendas. Faça com que no campo de nome do dia de reposição, na verdade não seja pra escrever e sim uma caixa seletora para escolher qual Unidade Curricular vai ser a reposição. Nisso deverá entrar no cálculo da carga horária total se tiver ativo.;"
 - **Ações:**
-    - Registro da nova diretriz de consulta sistemática ao [ROADMAP.md](../ROADMAP.md).
-    - Compromisso de alinhar cada modificação técnica com as fases planejadas.
+### 🟢 Prompt 7: Limite de Horas Diárias
+- **Usuário (Literal):** "Limite as horas de aula por dia até no máximo 8.;"
+- **Ações:**
+    - Validação de entrada para impedir valores superiores a 8 no campo "Horas de Aula por Dia".
+

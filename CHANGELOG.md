@@ -7,6 +7,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação de sistema de rastreabilidade via `prompts/history.md`.
 - Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
 
+## [1.3.1] - 2025-12-19
+### Adicionado
+- Validação de limite máximo de **8 horas de aula por dia**.
+
+### Alterado
+- **Reposições**: Agora deve-se selecionar uma **Unidade Curricular** (UC) ao invés de digitar um texto.
+- **Cálculo de Carga Horária**: Dias de reposição agora entram na conta de dias letivos para o cálculo de término do curso.
+- **Interface**: Removida a opção de trocar cor de dias individuais clicando neles.
+
+
 
 
 

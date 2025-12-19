@@ -54,11 +54,11 @@ const ColorPicker = ({ position, onSelectColor, onClose }) => (
   </div>
 );
 
-const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHoliday, onAddMakeupDay, classWeekDays, onClassWeekDaysChange, courseHours, onCourseHoursChange, hoursPerDay, onHoursPerDayChange, autoCalculateEnd, onAutoCalculateEndChange, onFetchNationalHolidays, isFetchingHolidays }) => {
+const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHoliday, onAddMakeupDay, classWeekDays, onClassWeekDaysChange, courseHours, onCourseHoursChange, hoursPerDay, onHoursPerDayChange, autoCalculateEnd, onAutoCalculateEndChange, onFetchNationalHolidays, isFetchingHolidays, curricularUnits }) => {
   const [holidayInput, setHolidayInput] = useState('');
   const [holidayNameInput, setHolidayNameInput] = useState('');
   const [makeupInput, setMakeupInput] = useState('');
-  const [makeupNameInput, setMakeupNameInput] = useState('');
+  const [makeupUnitId, setMakeupUnitId] = useState('');
 
   const handleAddDate = (type) => (e) => {
     e.preventDefault();
@@ -68,9 +68,9 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
       setHolidayNameInput('');
     }
     else if (type === 'makeup' && makeupInput) {
-      onAddMakeupDay(makeupInput, makeupNameInput);
+      onAddMakeupDay(makeupInput, makeupUnitId);
       setMakeupInput('');
-      setMakeupNameInput('');
+      setMakeupUnitId('');
     }
   };
 
@@ -99,7 +99,7 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
           </div>
           <div>
             <label htmlFor="hoursPerDay" className="block text-sm font-medium text-gray-600 mb-1">Horas de Aula por Dia</label>
-            <input type="number" id="hoursPerDay" name="hoursPerDay" value={hoursPerDay} onChange={onHoursPerDayChange} placeholder="Ex: 4" min="1" max="24" step="0.5" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" />
+            <input type="number" id="hoursPerDay" name="hoursPerDay" value={hoursPerDay} onChange={onHoursPerDayChange} placeholder="Ex: 4" min="1" max="8" step="0.5" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" />
           </div>
         </div>
         <div className="flex items-center justify-between p-3 bg-white rounded-md border border-gray-300">
@@ -149,7 +149,17 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
         <label htmlFor="makeup" className="block text-sm font-medium text-gray-600">Adicionar Dia de Reposição</label>
         <div className="flex flex-col gap-2">
           <input type="date" id="makeup" value={makeupInput} onChange={(e) => setMakeupInput(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
-          <input type="text" id="makeupName" value={makeupNameInput} onChange={(e) => setMakeupNameInput(e.target.value)} placeholder="Motivo da reposição (opcional)" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
+          <select
+            id="makeupUnit"
+            value={makeupUnitId}
+            onChange={(e) => setMakeupUnitId(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+          >
+            <option value="">Selecione a UC que será reposta (Opcional)</option>
+            {curricularUnits && curricularUnits.map(unit => (
+              <option key={unit.id} value={unit.id}>{unit.name}</option>
+            ))}
+          </select>
           <button type="submit" className="w-full px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition-colors">
             <FontAwesomeIcon icon={faPlus} className="mr-2" />Adicionar
           </button>
@@ -298,12 +308,15 @@ const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWe
           let title = '';
           if (dates.holidays.has(dateStr) && holidayNames.has(dateStr)) {
             title = `Feriado: ${holidayNames.get(dateStr)}`;
-          } else if (dates.makeupDays.has(dateStr) && makeupNames.has(dateStr)) {
-            title = `Reposição: ${makeupNames.get(dateStr)}`;
+          } else if (dates.makeupDays.has(dateStr)) {
+            const ucId = makeupNames.get(dateStr);
+            const uc = dates.curricularUnits.find(u => String(u.id) === String(ucId));
+            const ucName = uc ? uc.name : (ucId || 'Reposição');
+            title = `Reposição: ${ucName}`;
           }
 
           return (
-            <div key={day} onClick={(e) => onDayClick(e, 'individual', dateStr)} title={title} className={`h-16 md:h-20 flex items-center justify-center border rounded-md transition-all duration-200 cursor-pointer hover:shadow-md ${className} ${isToday ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}>
+            <div key={day} onClick={(e) => { if ('individual' !== 'individual') onDayClick(e, 'individual', dateStr) }} title={title} className={`h-16 md:h-20 flex items-center justify-center border rounded-md transition-all duration-200 cursor-pointer hover:shadow-md ${className} ${isToday ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}>
               <span className="text-lg font-medium">{dayIndex + 1}</span>
             </div>
           );
@@ -356,9 +369,11 @@ export default function App() {
         const dateStr = formatDateToISO(currentDate);
 
         // Verifica se é um dia de aula (não é feriado, não é emenda, está nos dias da semana)
-        if (classWeekDays.includes(dayOfWeek) &&
-          !dates.holidays.has(dateStr) &&
-          !dates.emendas.has(dateStr)) {
+        // OU se é um dia de reposição
+        if (
+          (classWeekDays.includes(dayOfWeek) && !dates.holidays.has(dateStr) && !dates.emendas.has(dateStr)) ||
+          dates.makeupDays.has(dateStr)
+        ) {
           daysCount++;
         }
 
@@ -382,7 +397,10 @@ export default function App() {
   };
 
   const handleHoursPerDayChange = (e) => {
-    setHoursPerDay(e.target.value);
+    let value = parseFloat(e.target.value);
+    if (value > 8) value = 8;
+    if (value < 0) value = 0; // Prevent negative values just in case
+    setHoursPerDay(value);
   };
 
   const handleAutoCalculateEndChange = () => {
@@ -431,12 +449,12 @@ export default function App() {
     }
   };
 
-  const addMakeupDay = (dateStr, name = '') => {
+  const addMakeupDay = (dateStr, unitId = '') => {
     if (!dateStr) return;
     const isoDate = formatDateToISO(dateStr);
     setDates(prev => ({ ...prev, makeupDays: new Set(prev.makeupDays).add(isoDate) }));
-    if (name) {
-      setMakeupNames(prev => new Map(prev).set(isoDate, name));
+    if (unitId) {
+      setMakeupNames(prev => new Map(prev).set(isoDate, unitId));
     }
   };
 
@@ -722,10 +740,20 @@ export default function App() {
           currentY += 7;
 
           pdfDoc.setFontSize(10).setFont(undefined, 'normal');
+          pdfDoc.setFontSize(10).setFont(undefined, 'normal');
           [...dateSet].sort().forEach(date => {
             if (currentY > pdfHeight - 15) { pdfDoc.addPage(); currentY = 20; }
             const dateText = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR');
-            const name = namesMap && namesMap.has(date) ? ` - ${namesMap.get(date)}` : '';
+
+            let name = '';
+            // Se for reposição, tenta buscar o nome da UC
+            if (namesMap && namesMap.has(date)) {
+              const val = namesMap.get(date);
+              // Verifica se é um ID de UC
+              const uc = dates.curricularUnits.find(u => String(u.id) === String(val));
+              name = uc ? ` - ${uc.name}` : ` - ${val}`;
+            }
+
             pdfDoc.text(`- ${dateText}${name}`, 18, currentY);
             currentY += 6;
           });
@@ -764,7 +792,13 @@ export default function App() {
       <h3 className="font-bold text-gray-600 mb-2">{title}</h3>
       <ul className="space-y-1 max-h-32 overflow-y-auto">
         {[...list].sort().map(date => {
-          const name = namesMap && namesMap.has(date) ? namesMap.get(date) : '';
+          let name = '';
+          if (namesMap && namesMap.has(date)) {
+            const val = namesMap.get(date);
+            const uc = dates.curricularUnits.find(u => String(u.id) === String(val));
+            name = uc ? uc.name : val;
+          }
+
           return (
             <li key={date} className="flex justify-between items-center text-sm p-1 rounded bg-white shadow-sm">
               <span className="flex-1">
@@ -790,7 +824,24 @@ export default function App() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 space-y-6">
-              <CalendarControls turmaName={turmaName} onTurmaNameChange={(e) => setTurmaName(e.target.value)} onDatesChange={handleDateChange} onAddHoliday={addHolidayAndBridge} onAddMakeupDay={addMakeupDay} classWeekDays={classWeekDays} onClassWeekDaysChange={handleClassWeekDaysChange} courseHours={courseHours} onCourseHoursChange={handleCourseHoursChange} hoursPerDay={hoursPerDay} onHoursPerDayChange={handleHoursPerDayChange} autoCalculateEnd={autoCalculateEnd} onAutoCalculateEndChange={handleAutoCalculateEndChange} onFetchNationalHolidays={fetchNationalHolidays} isFetchingHolidays={isFetchingHolidays} />
+              <CalendarControls
+                turmaName={turmaName}
+                onTurmaNameChange={(e) => setTurmaName(e.target.value)}
+                onDatesChange={handleDateChange}
+                onAddHoliday={addHolidayAndBridge}
+                onAddMakeupDay={addMakeupDay}
+                classWeekDays={classWeekDays}
+                onClassWeekDaysChange={handleClassWeekDaysChange}
+                courseHours={courseHours}
+                onCourseHoursChange={handleCourseHoursChange}
+                hoursPerDay={hoursPerDay}
+                onHoursPerDayChange={handleHoursPerDayChange}
+                autoCalculateEnd={autoCalculateEnd}
+                onAutoCalculateEndChange={handleAutoCalculateEndChange}
+                onFetchNationalHolidays={fetchNationalHolidays}
+                isFetchingHolidays={isFetchingHolidays}
+                curricularUnits={dates.curricularUnits}
+              />
               <CurricularUnitControls onAddUnit={handleAddUnit} onUpdateUnit={handleUpdateUnit} editingUnit={editingUnit} onCancelEdit={() => setEditingUnit(null)} generalWeekDays={classWeekDays} />
               {dates.curricularUnits.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg">

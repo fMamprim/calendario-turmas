@@ -8,7 +8,8 @@ Um sistema interativo e inteligente para planejamento de calendários escolares,
 
 - **🕒 Gestão de Carga Horária**: Calcule automaticamente o fim do curso definindo a carga horária total e horas/dia.
 - **🇧🇷 Feriados Inteligentes**: Importação automática de feriados nacionais brasileiros via BrasilAPI.
-- **📝 Detalhamento de Datas**: Nomeie seus feriados e motivos de reposição, com visualização direta via tooltips.
+- **📝 Detalhamento de Datas**: Nomeie seus feriados e **vincule reposições a Unidades Curriculares**.
+
 - **📅 Controle de UCs**: Planeje as Unidades Curriculares com cores distintas e datas específicas.
 - **📄 Exportação Profissional**: Gere documentos em PDF prontos para impressão com legendas e lista de datas importantes.
 - **💾 Salvamento Local**: Salve e carregue seus projetos em formato JSON.
