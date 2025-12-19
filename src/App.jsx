@@ -55,7 +55,7 @@ const ColorPicker = ({ position, onSelectColor, onClose }) => (
   </div>
 );
 
-const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHoliday, onAddMakeupDay, classWeekDays, onClassWeekDaysChange }) => {
+const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHoliday, onAddMakeupDay, classWeekDays, onClassWeekDaysChange, courseHours, onCourseHoursChange, autoCalculateEnd, onAutoCalculateEndChange }) => {
   const [holidayInput, setHolidayInput] = useState('');
   const [makeupInput, setMakeupInput] = useState('');
 
@@ -79,7 +79,19 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
         </div>
         <div>
           <label htmlFor="endDate" className="block text-sm font-medium text-gray-600 mb-1">Fim do Semestre</label>
-          <input type="date" id="endDate" name="endDate" onChange={onDatesChange} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" />
+          <input type="date" id="endDate" name="endDate" onChange={onDatesChange} disabled={autoCalculateEnd} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" />
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="courseHours" className="block text-sm font-medium text-gray-600 mb-1">Carga Horária do Curso (horas)</label>
+          <input type="number" id="courseHours" name="courseHours" value={courseHours} onChange={onCourseHoursChange} placeholder="Ex: 800" min="0" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div className="flex items-center gap-3 p-3 bg-white rounded-md border border-gray-300">
+          <input type="checkbox" id="autoCalculateEnd" checked={autoCalculateEnd} onChange={onAutoCalculateEndChange} className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
+          <label htmlFor="autoCalculateEnd" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+            Calcular fim do curso automaticamente com base na carga horária
+          </label>
         </div>
       </div>
       <div>
@@ -276,9 +288,58 @@ export default function App() {
   const [colorPickerState, setColorPickerState] = useState({ visible: false, position: null, target: null });
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [editingUnit, setEditingUnit] = useState(null);
+  const [courseHours, setCourseHours] = useState('');
+  const [autoCalculateEnd, setAutoCalculateEnd] = useState(false);
   const calendarPdfRef = useRef(null);
 
-  const handleDateChange = (e) => setDates(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleDateChange = (e) => {
+    setDates(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  // useEffect para recalcular quando necessário
+  useEffect(() => {
+    if (autoCalculateEnd && dates.startDate && courseHours && courseHours > 0) {
+      // Calcula quantos dias de aula são necessários (assumindo 4 horas por dia de aula)
+      const hoursPerDay = 4;
+      const daysNeeded = Math.ceil(courseHours / hoursPerDay);
+
+      let currentDate = new Date(dates.startDate + 'T12:00:00');
+      let daysCount = 0;
+
+      // Avança no calendário contando apenas os dias de aula
+      while (daysCount < daysNeeded) {
+        const dayOfWeek = currentDate.getDay();
+        const dateStr = formatDateToISO(currentDate);
+
+        // Verifica se é um dia de aula (não é feriado, não é emenda, está nos dias da semana)
+        if (classWeekDays.includes(dayOfWeek) &&
+          !dates.holidays.has(dateStr) &&
+          !dates.emendas.has(dateStr)) {
+          daysCount++;
+        }
+
+        // Se ainda não chegou ao número de dias necessários, avança para o próximo dia
+        if (daysCount < daysNeeded) {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      }
+
+      const endDateStr = formatDateToISO(currentDate);
+
+      // Só atualiza se a data calculada for diferente da atual
+      if (endDateStr !== dates.endDate) {
+        setDates(prev => ({ ...prev, endDate: endDateStr }));
+      }
+    }
+  }, [autoCalculateEnd, dates.startDate, courseHours, classWeekDays, dates.holidays, dates.emendas]);
+
+  const handleCourseHoursChange = (e) => {
+    setCourseHours(e.target.value);
+  };
+
+  const handleAutoCalculateEndChange = (e) => {
+    setAutoCalculateEnd(e.target.checked);
+  };
 
   const addHolidayAndBridge = (dateStr) => {
     if (!dateStr) return;
@@ -378,6 +439,8 @@ export default function App() {
       colors,
       individualDayColors,
       classWeekDays,
+      courseHours,
+      autoCalculateEnd,
     };
 
     const jsonString = JSON.stringify(dataToSave, (key, value) => {
@@ -415,6 +478,8 @@ export default function App() {
         setColors(loadedData.colors || DEFAULT_COLORS);
         setIndividualDayColors(loadedData.individualDayColors || {});
         setClassWeekDays(loadedData.classWeekDays || [1, 2, 3, 4, 5]);
+        setCourseHours(loadedData.courseHours || '');
+        setAutoCalculateEnd(loadedData.autoCalculateEnd || false);
 
         if (loadedData.dates) {
           setDates({
@@ -610,7 +675,7 @@ export default function App() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 space-y-6">
-              <CalendarControls turmaName={turmaName} onTurmaNameChange={(e) => setTurmaName(e.target.value)} onDatesChange={handleDateChange} onAddHoliday={addHolidayAndBridge} onAddMakeupDay={addMakeupDay} classWeekDays={classWeekDays} onClassWeekDaysChange={handleClassWeekDaysChange} />
+              <CalendarControls turmaName={turmaName} onTurmaNameChange={(e) => setTurmaName(e.target.value)} onDatesChange={handleDateChange} onAddHoliday={addHolidayAndBridge} onAddMakeupDay={addMakeupDay} classWeekDays={classWeekDays} onClassWeekDaysChange={handleClassWeekDaysChange} courseHours={courseHours} onCourseHoursChange={handleCourseHoursChange} autoCalculateEnd={autoCalculateEnd} onAutoCalculateEndChange={handleAutoCalculateEndChange} />
               <CurricularUnitControls onAddUnit={handleAddUnit} onUpdateUnit={handleUpdateUnit} editingUnit={editingUnit} onCancelEdit={() => setEditingUnit(null)} generalWeekDays={classWeekDays} />
               {dates.curricularUnits.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg">
