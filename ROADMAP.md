@@ -8,9 +8,9 @@ Este documento detalha o planejamento das futuras funcionalidades e melhorias do
 **Foco:** Refinar a lógica de cores e validação de horas.
 
 - [ ] **Desvincular Cores de Dias Individuais**: Remover a possibilidade de alteração de cor direta no calendário. As cores serão geridas exclusivamente via legendas/UCs.
-- [ ] **Reposições Inteligentes**: Transformar o campo de "Nome da Reposição" em um dropdown para seleção de uma **Unidade Curricular (UC)**.
-    - [ ] Integrar horários de reposição no cálculo de carga horária da UC selecionada.
-- [ ] **Limitação de Jornada**: Implementar trava de validação para o campo "Horas por Dia" (máximo de 8 horas).
+- [x] **Reposições Inteligentes**: Transformar o campo de "Nome da Reposição" em um dropdown para seleção de uma **Unidade Curricular (UC)**.
+    - [x] Integrar horários de reposição no cálculo de carga horária da UC selecionada.
+- [x] **Limitação de Jornada**: Implementar trava de validação para o campo "Horas por Dia" (máximo de 8 horas).
 
 ## 🧩 Fase 2: Gestão Descentralizada (Nível UC)
 **Foco:** Trazer a inteligência de cálculo para dentro de cada disciplina.
