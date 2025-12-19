@@ -72,3 +72,7 @@ Desenvolvido para uso no SENAI. Consulte os termos de uso internos.
 
 ---
 *Para ver o histórico detalhado de alterações, consulte o arquivo [CHANGELOG.md](./CHANGELOG.md) e a pasta [versions](./versions).*
+*Consulte também o nosso [ROADMAP.md](./ROADMAP.md) para futuras funcionalidades.*
+*Acompanhe o histórico de pedidos em [prompts/history.md](./prompts/history.md).*
+
+

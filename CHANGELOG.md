@@ -2,6 +2,14 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [Planejado]
+- Definição do Roadmap de evolução (Fases 1 a 5).
+- Implementação de sistema de rastreabilidade via `prompts/history.md`.
+- Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
+
+
+
+
 ## [1.2.0] - 2025-12-19
 ### Adicionado
 - Integração com a **BrasilAPI** para busca automática de feriados nacionais.
