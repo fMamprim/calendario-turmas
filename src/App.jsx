@@ -1,4 +1,3 @@
-@ -0, 0 + 1, 708 @@
 // src/App.jsx (Versão Final e Corrigida)
 
 // 1. IMPORTS - Todos juntos no topo do arquivo
