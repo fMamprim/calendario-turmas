@@ -54,14 +54,24 @@ const ColorPicker = ({ position, onSelectColor, onClose }) => (
   </div>
 );
 
-const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHoliday, onAddMakeupDay, classWeekDays, onClassWeekDaysChange, courseHours, onCourseHoursChange, autoCalculateEnd, onAutoCalculateEndChange }) => {
+const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHoliday, onAddMakeupDay, classWeekDays, onClassWeekDaysChange, courseHours, onCourseHoursChange, hoursPerDay, onHoursPerDayChange, autoCalculateEnd, onAutoCalculateEndChange, onFetchNationalHolidays, isFetchingHolidays }) => {
   const [holidayInput, setHolidayInput] = useState('');
+  const [holidayNameInput, setHolidayNameInput] = useState('');
   const [makeupInput, setMakeupInput] = useState('');
+  const [makeupNameInput, setMakeupNameInput] = useState('');
 
   const handleAddDate = (type) => (e) => {
     e.preventDefault();
-    if (type === 'holiday' && holidayInput) { onAddHoliday(holidayInput); setHolidayInput(''); }
-    else if (type === 'makeup' && makeupInput) { onAddMakeupDay(makeupInput); setMakeupInput(''); }
+    if (type === 'holiday' && holidayInput) {
+      onAddHoliday(holidayInput, holidayNameInput);
+      setHolidayInput('');
+      setHolidayNameInput('');
+    }
+    else if (type === 'makeup' && makeupInput) {
+      onAddMakeupDay(makeupInput, makeupNameInput);
+      setMakeupInput('');
+      setMakeupNameInput('');
+    }
   };
 
   return (
@@ -82,15 +92,31 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
         </div>
       </div>
       <div className="space-y-4">
-        <div>
-          <label htmlFor="courseHours" className="block text-sm font-medium text-gray-600 mb-1">Carga Horária do Curso (horas)</label>
-          <input type="number" id="courseHours" name="courseHours" value={courseHours} onChange={onCourseHoursChange} placeholder="Ex: 800" min="0" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="courseHours" className="block text-sm font-medium text-gray-600 mb-1">Carga Horária Total</label>
+            <input type="number" id="courseHours" name="courseHours" value={courseHours} onChange={onCourseHoursChange} placeholder="Ex: 800" min="0" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label htmlFor="hoursPerDay" className="block text-sm font-medium text-gray-600 mb-1">Horas de Aula por Dia</label>
+            <input type="number" id="hoursPerDay" name="hoursPerDay" value={hoursPerDay} onChange={onHoursPerDayChange} placeholder="Ex: 4" min="1" max="24" step="0.5" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" />
+          </div>
         </div>
-        <div className="flex items-center gap-3 p-3 bg-white rounded-md border border-gray-300">
-          <input type="checkbox" id="autoCalculateEnd" checked={autoCalculateEnd} onChange={onAutoCalculateEndChange} className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
-          <label htmlFor="autoCalculateEnd" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
-            Calcular fim do curso automaticamente com base na carga horária
+        <div className="flex items-center justify-between p-3 bg-white rounded-md border border-gray-300">
+          <label htmlFor="autoCalculateEnd" className="text-sm font-medium text-gray-700 select-none">
+            Calcular fim do curso automaticamente
           </label>
+          <button
+            type="button"
+            onClick={onAutoCalculateEndChange}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${autoCalculateEnd ? 'bg-blue-600' : 'bg-gray-300'
+              }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autoCalculateEnd ? 'translate-x-6' : 'translate-x-1'
+                }`}
+            />
+          </button>
         </div>
       </div>
       <div>
@@ -106,18 +132,25 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
       </div>
       <form onSubmit={handleAddDate('holiday')} className="space-y-2">
         <label htmlFor="holiday" className="block text-sm font-medium text-gray-600">Adicionar Feriado</label>
-        <div className="flex items-center gap-2">
-          <input type="date" id="holiday" value={holidayInput} onChange={(e) => setHolidayInput(e.target.value)} className="flex-grow p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500" />
-          <button type="submit" className="px-4 py-2 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors">
-            <FontAwesomeIcon icon={faPlus} className="mr-2" />Adicionar
-          </button>
+        <div className="flex flex-col gap-2">
+          <input type="date" id="holiday" value={holidayInput} onChange={(e) => setHolidayInput(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500" />
+          <input type="text" id="holidayName" value={holidayNameInput} onChange={(e) => setHolidayNameInput(e.target.value)} placeholder="Nome do feriado (opcional)" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500" />
+          <div className="flex gap-2">
+            <button type="submit" className="flex-1 px-4 py-2 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors">
+              <FontAwesomeIcon icon={faPlus} className="mr-2" />Adicionar
+            </button>
+            <button type="button" onClick={onFetchNationalHolidays} disabled={isFetchingHolidays} className="flex-1 px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors disabled:bg-blue-300">
+              {isFetchingHolidays ? 'Carregando...' : 'Feriados Nacionais'}
+            </button>
+          </div>
         </div>
       </form>
       <form onSubmit={handleAddDate('makeup')} className="space-y-2">
         <label htmlFor="makeup" className="block text-sm font-medium text-gray-600">Adicionar Dia de Reposição</label>
-        <div className="flex items-center gap-2">
-          <input type="date" id="makeup" value={makeupInput} onChange={(e) => setMakeupInput(e.target.value)} className="flex-grow p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
-          <button type="submit" className="px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition-colors">
+        <div className="flex flex-col gap-2">
+          <input type="date" id="makeup" value={makeupInput} onChange={(e) => setMakeupInput(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
+          <input type="text" id="makeupName" value={makeupNameInput} onChange={(e) => setMakeupNameInput(e.target.value)} placeholder="Motivo da reposição (opcional)" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
+          <button type="submit" className="w-full px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition-colors">
             <FontAwesomeIcon icon={faPlus} className="mr-2" />Adicionar
           </button>
         </div>
@@ -222,7 +255,7 @@ const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancel
   );
 };
 
-const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWeekDays, onDayClick }) => {
+const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWeekDays, onDayClick, holidayNames, makeupNames }) => {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
 
@@ -259,9 +292,18 @@ const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWe
           const day = dayIndex + 1;
           const { className } = getDayStyle(day);
           const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+          const dateStr = formatDateToISO(new Date(year, month, day));
+
+          // Criar tooltip com nome do feriado/reposição
+          let title = '';
+          if (dates.holidays.has(dateStr) && holidayNames.has(dateStr)) {
+            title = `Feriado: ${holidayNames.get(dateStr)}`;
+          } else if (dates.makeupDays.has(dateStr) && makeupNames.has(dateStr)) {
+            title = `Reposição: ${makeupNames.get(dateStr)}`;
+          }
 
           return (
-            <div key={day} onClick={(e) => onDayClick(e, 'individual', formatDateToISO(new Date(year, month, day)))} className={`h-16 md:h-20 flex items-center justify-center border rounded-md transition-all duration-200 cursor-pointer hover:shadow-md ${className} ${isToday ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}>
+            <div key={day} onClick={(e) => onDayClick(e, 'individual', dateStr)} title={title} className={`h-16 md:h-20 flex items-center justify-center border rounded-md transition-all duration-200 cursor-pointer hover:shadow-md ${className} ${isToday ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}>
               <span className="text-lg font-medium">{dayIndex + 1}</span>
             </div>
           );
@@ -281,6 +323,9 @@ export default function App() {
     startDate: null, endDate: null, holidays: new Set(),
     makeupDays: new Set(), emendas: new Set(), curricularUnits: [],
   });
+  const [holidayNames, setHolidayNames] = useState(new Map());
+  const [makeupNames, setMakeupNames] = useState(new Map());
+  const [isFetchingHolidays, setIsFetchingHolidays] = useState(false);
   const [colors, setColors] = useState(DEFAULT_COLORS);
   const [individualDayColors, setIndividualDayColors] = useState({});
   const [classWeekDays, setClassWeekDays] = useState([1, 2, 3, 4, 5]);
@@ -288,6 +333,7 @@ export default function App() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [editingUnit, setEditingUnit] = useState(null);
   const [courseHours, setCourseHours] = useState('');
+  const [hoursPerDay, setHoursPerDay] = useState(4);
   const [autoCalculateEnd, setAutoCalculateEnd] = useState(false);
   const calendarPdfRef = useRef(null);
 
@@ -297,9 +343,8 @@ export default function App() {
 
   // useEffect para recalcular quando necessário
   useEffect(() => {
-    if (autoCalculateEnd && dates.startDate && courseHours && courseHours > 0) {
-      // Calcula quantos dias de aula são necessários (assumindo 4 horas por dia de aula)
-      const hoursPerDay = 4;
+    if (autoCalculateEnd && dates.startDate && courseHours && courseHours > 0 && hoursPerDay > 0) {
+      // Calcula quantos dias de aula são necessários
       const daysNeeded = Math.ceil(courseHours / hoursPerDay);
 
       let currentDate = new Date(dates.startDate + 'T12:00:00');
@@ -330,17 +375,21 @@ export default function App() {
         setDates(prev => ({ ...prev, endDate: endDateStr }));
       }
     }
-  }, [autoCalculateEnd, dates.startDate, courseHours, classWeekDays, dates.holidays, dates.emendas]);
+  }, [autoCalculateEnd, dates.startDate, courseHours, hoursPerDay, classWeekDays, dates.holidays, dates.emendas]);
 
   const handleCourseHoursChange = (e) => {
     setCourseHours(e.target.value);
   };
 
-  const handleAutoCalculateEndChange = (e) => {
-    setAutoCalculateEnd(e.target.checked);
+  const handleHoursPerDayChange = (e) => {
+    setHoursPerDay(e.target.value);
   };
 
-  const addHolidayAndBridge = (dateStr) => {
+  const handleAutoCalculateEndChange = () => {
+    setAutoCalculateEnd(prev => !prev);
+  };
+
+  const addHolidayAndBridge = (dateStr, name = '') => {
     if (!dateStr) return;
     const isoDate = formatDateToISO(dateStr);
     setDates(prev => {
@@ -355,11 +404,40 @@ export default function App() {
       }
       return { ...prev, holidays: newHolidays, emendas: newEmendas };
     });
+    if (name) {
+      setHolidayNames(prev => new Map(prev).set(isoDate, name));
+    }
   };
 
-  const addMakeupDay = (dateStr) => {
+  const fetchNationalHolidays = async () => {
+    setIsFetchingHolidays(true);
+    try {
+      const year = dates.startDate ? new Date(dates.startDate).getFullYear() : new Date().getFullYear();
+      const response = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
+      if (!response.ok) throw new Error('Erro ao buscar feriados');
+      const holidays = await response.json();
+
+      holidays.forEach(holiday => {
+        const isoDate = formatDateToISO(holiday.date);
+        addHolidayAndBridge(isoDate, holiday.name);
+      });
+
+      alert(`${holidays.length} feriados nacionais de ${year} foram adicionados!`);
+    } catch (error) {
+      console.error('Erro ao buscar feriados:', error);
+      alert('Não foi possível carregar os feriados nacionais. Verifique sua conexão com a internet.');
+    } finally {
+      setIsFetchingHolidays(false);
+    }
+  };
+
+  const addMakeupDay = (dateStr, name = '') => {
     if (!dateStr) return;
-    setDates(prev => ({ ...prev, makeupDays: new Set(prev.makeupDays).add(formatDateToISO(dateStr)) }));
+    const isoDate = formatDateToISO(dateStr);
+    setDates(prev => ({ ...prev, makeupDays: new Set(prev.makeupDays).add(isoDate) }));
+    if (name) {
+      setMakeupNames(prev => new Map(prev).set(isoDate, name));
+    }
   };
 
   const removeDateFromList = (listType, date) => {
@@ -375,6 +453,21 @@ export default function App() {
           newEmendas.delete(formatDateToISO(new Date(new Date(holidayDate).setDate(holidayDate.getDate() + 2))));
         }
         return { ...prev, holidays: newHolidays, emendas: newEmendas };
+      });
+      setHolidayNames(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(date);
+        return newMap;
+      });
+    } else if (listType === 'makeupDays') {
+      setDates(prev => {
+        const newSet = new Set(prev[listType]); newSet.delete(date);
+        return { ...prev, [listType]: newSet };
+      });
+      setMakeupNames(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(date);
+        return newMap;
       });
     } else {
       setDates(prev => {
@@ -439,7 +532,10 @@ export default function App() {
       individualDayColors,
       classWeekDays,
       courseHours,
+      hoursPerDay,
       autoCalculateEnd,
+      holidayNames: [...holidayNames.entries()],
+      makeupNames: [...makeupNames.entries()],
     };
 
     const jsonString = JSON.stringify(dataToSave, (key, value) => {
@@ -478,7 +574,16 @@ export default function App() {
         setIndividualDayColors(loadedData.individualDayColors || {});
         setClassWeekDays(loadedData.classWeekDays || [1, 2, 3, 4, 5]);
         setCourseHours(loadedData.courseHours || '');
+        setHoursPerDay(loadedData.hoursPerDay || 4);
         setAutoCalculateEnd(loadedData.autoCalculateEnd || false);
+
+        // Carregar Maps de nomes
+        if (loadedData.holidayNames) {
+          setHolidayNames(new Map(loadedData.holidayNames));
+        }
+        if (loadedData.makeupNames) {
+          setMakeupNames(new Map(loadedData.makeupNames));
+        }
 
         if (loadedData.dates) {
           setDates({
@@ -609,7 +714,7 @@ export default function App() {
       pdfDoc.text('Datas Importantes', 14, 20);
       let currentY = 30;
 
-      const renderListToPdf = (title, dateSet) => {
+      const renderListToPdf = (title, dateSet, namesMap = null) => {
         if (dateSet.size > 0) {
           if (currentY > pdfHeight - 25) { pdfDoc.addPage(); currentY = 20; }
           pdfDoc.setFontSize(12).setFont(undefined, 'bold');
@@ -619,7 +724,9 @@ export default function App() {
           pdfDoc.setFontSize(10).setFont(undefined, 'normal');
           [...dateSet].sort().forEach(date => {
             if (currentY > pdfHeight - 15) { pdfDoc.addPage(); currentY = 20; }
-            pdfDoc.text(`- ${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}`, 18, currentY);
+            const dateText = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR');
+            const name = namesMap && namesMap.has(date) ? ` - ${namesMap.get(date)}` : '';
+            pdfDoc.text(`- ${dateText}${name}`, 18, currentY);
             currentY += 6;
           });
           currentY += 4;
@@ -631,9 +738,9 @@ export default function App() {
       if (dates.endDate) {
         renderListToPdf('Término do Curso:', new Set([dates.endDate]));
       }
-      renderListToPdf('Feriados:', dates.holidays);
+      renderListToPdf('Feriados:', dates.holidays, holidayNames);
       renderListToPdf('Emendas de Feriado:', dates.emendas);
-      renderListToPdf('Reposição de Aulas:', dates.makeupDays);
+      renderListToPdf('Reposição de Aulas:', dates.makeupDays, makeupNames);
 
       // 4. Salva o PDF
       pdfDoc.save(`${turmaName.replace(/ /g, '_') || 'calendario'}.pdf`);
@@ -652,16 +759,22 @@ export default function App() {
   const year = currentDate.getFullYear();
   const monthName = currentDate.toLocaleString('pt-BR', { month: 'long' });
 
-  const renderDateList = (list, type, title) => (
+  const renderDateList = (list, type, title, namesMap = null) => (
     <div className="p-4 bg-gray-50 rounded-lg">
       <h3 className="font-bold text-gray-600 mb-2">{title}</h3>
       <ul className="space-y-1 max-h-32 overflow-y-auto">
-        {[...list].sort().map(date => (
-          <li key={date} className="flex justify-between items-center text-sm p-1 rounded bg-white shadow-sm">
-            <span>{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-            <button onClick={() => removeDateFromList(type, date)} className="text-red-500 hover:text-red-700 font-bold text-lg">&times;</button>
-          </li>
-        ))}
+        {[...list].sort().map(date => {
+          const name = namesMap && namesMap.has(date) ? namesMap.get(date) : '';
+          return (
+            <li key={date} className="flex justify-between items-center text-sm p-1 rounded bg-white shadow-sm">
+              <span className="flex-1">
+                {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                {name && <span className="text-gray-500 ml-2">- {name}</span>}
+              </span>
+              <button onClick={() => removeDateFromList(type, date)} className="text-red-500 hover:text-red-700 font-bold text-lg">&times;</button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -670,11 +783,14 @@ export default function App() {
     <>
       <div className="bg-gray-100 min-h-screen p-4 sm:p-6 lg:p-8 font-sans" onClick={() => setColorPickerState({ visible: false })}>
         <div className="max-w-7xl mx-auto">
-          <header className="text-center mb-8"><h1 className="text-4xl font-extrabold text-gray-800">Calendário Escolar Interativo</h1></header>
+          <header className="relative text-center mb-8">
+            <img src={senaiLogo} alt="Logo SENAI" className="absolute left-0 top-0 h-10 w-auto" />
+            <h1 className="text-4xl font-extrabold text-gray-800">Calendário Escolar Interativo</h1>
+          </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 space-y-6">
-              <CalendarControls turmaName={turmaName} onTurmaNameChange={(e) => setTurmaName(e.target.value)} onDatesChange={handleDateChange} onAddHoliday={addHolidayAndBridge} onAddMakeupDay={addMakeupDay} classWeekDays={classWeekDays} onClassWeekDaysChange={handleClassWeekDaysChange} courseHours={courseHours} onCourseHoursChange={handleCourseHoursChange} autoCalculateEnd={autoCalculateEnd} onAutoCalculateEndChange={handleAutoCalculateEndChange} />
+              <CalendarControls turmaName={turmaName} onTurmaNameChange={(e) => setTurmaName(e.target.value)} onDatesChange={handleDateChange} onAddHoliday={addHolidayAndBridge} onAddMakeupDay={addMakeupDay} classWeekDays={classWeekDays} onClassWeekDaysChange={handleClassWeekDaysChange} courseHours={courseHours} onCourseHoursChange={handleCourseHoursChange} hoursPerDay={hoursPerDay} onHoursPerDayChange={handleHoursPerDayChange} autoCalculateEnd={autoCalculateEnd} onAutoCalculateEndChange={handleAutoCalculateEndChange} onFetchNationalHolidays={fetchNationalHolidays} isFetchingHolidays={isFetchingHolidays} />
               <CurricularUnitControls onAddUnit={handleAddUnit} onUpdateUnit={handleUpdateUnit} editingUnit={editingUnit} onCancelEdit={() => setEditingUnit(null)} generalWeekDays={classWeekDays} />
               {dates.curricularUnits.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg">
@@ -699,8 +815,8 @@ export default function App() {
                   </ul>
                 </div>
               )}
-              {renderDateList(dates.holidays, 'holidays', 'Feriados Marcados')}
-              {renderDateList(dates.makeupDays, 'makeupDays', 'Reposições Marcadas')}
+              {renderDateList(dates.holidays, 'holidays', 'Feriados Marcados', holidayNames)}
+              {renderDateList(dates.makeupDays, 'makeupDays', 'Reposições Marcadas', makeupNames)}
             </div>
 
             <div className="lg:col-span-2">
@@ -714,7 +830,7 @@ export default function App() {
                     Próximo <FontAwesomeIcon icon={faChevronRight} className="ml-2" />
                   </button>
                 </div>
-                <CalendarGrid month={month} year={year} dates={dates} colors={colors} individualDayColors={individualDayColors} classWeekDays={classWeekDays} onDayClick={handleOpenColorPicker} />
+                <CalendarGrid month={month} year={year} dates={dates} colors={colors} individualDayColors={individualDayColors} classWeekDays={classWeekDays} onDayClick={handleOpenColorPicker} holidayNames={holidayNames} makeupNames={makeupNames} />
               </div>
               <div className="mt-4 p-4 bg-white rounded-lg shadow-sm">
                 <h3 className="font-semibold text-lg mb-3">Legenda (clique para alterar a cor)</h3>
