@@ -7,6 +7,24 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação de sistema de rastreabilidade via `prompts/history.md`.
 - Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
 
+## [1.6.0] - 2025-12-19
+### Adicionado
+- Sistema de gestão de Férias e Licenças (períodos longos).
+- Interface para cadastro de intervalos de datas com nome.
+- Visualização de férias no grid (amarelo) e listagem lateral.
+- Integração dos períodos de férias no cálculo de término do curso.
+
+## [1.5.0] - 2025-12-19
+### Adicionado
+- **Gestão de Recessos**: Opção para adicionar dias não letivos personalizados (ex: conselho de classe, recesso escolar).
+- **Cor de Recesso**: Nova cor (Laranja) para distinguir recessos de feriados nacionais.
+- **Lógica Inteligente**: Os dias de recesso automtaicamente não contam como dias letivos e empurram o término do curso.
+
+## [1.4.1] - 2025-12-19
+### Adicionado
+- **Dashboard de Métricas**: Exibição de Dias Letivos, Horas Reais (max 7.5h/dia) e Total de Aulas (45min) para o curso e UCs.
+- **Detalhamento de UC**: Lista de UCs agora exibe estatísticas individuais de progresso.
+
 ## [1.4.0] - 2025-12-19
 ### Adicionado
 - **Cálculo Inteligente por UC**: Cada Unidade Curricular agora possui seu próprio campo de carga horária e cálculo automático de data de término.

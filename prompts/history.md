@@ -28,9 +28,15 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
 ### 🟢 Prompt 6: Fase 1 - Cores e Reposições
 - **Usuário (Literal):** "Quando eu clico em um dia no calendário, eu posso trocar a cor. Faça com que a partir de agora eu não possa mais trocar a cor dos dias individuais, mas somente das legendas. Faça com que no campo de nome do dia de reposição, na verdade não seja pra escrever e sim uma caixa seletora para escolher qual Unidade Curricular vai ser a reposição. Nisso deverá entrar no cálculo da carga horária total se tiver ativo.;"
 - **Ações:**
+    - Atualização da lógica de seleção de cores.
+    - Implementação de Select para UCs no modal de Reposição.
+    - Documentação da versão 1.3.0.
+
 ### 🟢 Prompt 7: Limite de Horas Diárias
 - **Usuário (Literal):** "Limite as horas de aula por dia até no máximo 8.;"
 - **Ações:**
+     - Adição de validação de input max=8.
+
 ### 🟢 Prompt 8: Cálculo por UC
 - **Usuário (Literal):** "Implemente a opção de preencher e calcular "Carga Horária do Curso (horas)" e o toggle "Calcular fim do curso automaticamente com base na carga horária" dentro do "Adicionar Unidade Curricular", para que ele possa calcular automaticamente cada unidade curricular.;"
 - **Ações:**
@@ -38,4 +44,28 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
     - Implementação de campos de carga horária e cálculo automático dentro do formulário de UCs.
     - Criação de função reutilizável para cálculo de datas.
 
+### 🟢 Prompt 9: Métricas e Estatísticas
+- **Usuário (Literal):** "Melhore a visualização dos dados. Quero que exiba quantos dias/aulas/horas totais reais o curso tem (descontando feriados/emendas). E quero que exiba isso também individualmente em cada UC na lista lateral."
+- **Ações:**
+    - **Fase 3** do Roadmap concluída.
+    - Implementação de Dashboard de Métricas no topo.
+    - Implementação de métricas individuais por UC na lista.
+    - Documentação da versão 1.4.1.
 
+### 🟢 Prompt 10: Recessos
+- **Usuário (Literal):** "Permita adicionar dias de Recesso (com nome). Eles não contam como aula."
+- **Ações:**
+    - **Fase 4 (Parcial)**.
+    - Implementação de input para data e nome (Recesso).
+    - Atualização da lógica de `calculateEndDate` para excluir recessos.
+    - Documentação da versão 1.5.0.
+
+### 🟢 Prompt 11: Férias e Licenças
+- **Usuário (Literal):** "Férias e Licenças. O usuário deve poder adicionar um período (inicio e fim) e um nome. Esses dias o sistema pula no cálculo."
+- **Ações:**
+    - **Fase 4 (Conclusão)**.
+    - Implementação de formulário de Período (Vacation).
+    - Implementação de estado `vacationPeriods` e lógica de expansão de datas.
+    - Visualização amarela no grid.
+    - Atualização de JSON import/export.
+    - Documentação da versão 1.6.0.

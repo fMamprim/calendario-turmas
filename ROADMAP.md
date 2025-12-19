@@ -21,17 +21,17 @@ Este documento detalha o planejamento das futuras funcionalidades e melhorias do
 ## 📊 Fase 3: Métricas e Estatísticas Detalhadas
 **Foco:** Transparência de dados para o curso completo e para cada UC.
 
-- [ ] **Dashboard de Métricas**:
-    - [ ] **Total de Dias**: Contagem de dias letivos.
-    - [ ] **Carga Horária Real**: Baseada em no máximo 7,5 horas/dia (incluindo intervalos).
-    - [ ] **Contador de Aulas**: Converter carga horária em aulas de 45 minutos (máximo 10 aulas/dia).
-- [ ] **Visualização Dupla**: Exibir estas métricas no resumo geral do curso e nos detalhes de cada UC.
+- [x] **Dashboard de Métricas**:
+    - [x] **Total de Dias**: Contagem de dias letivos.
+    - [x] **Carga Horária Real**: Baseada em no máximo 7,5 horas/dia (incluindo intervalos).
+    - [x] **Contador de Aulas**: Converter carga horária em aulas de 45 minutos (máximo 10 aulas/dia).
+- [x] **Visualização Dupla**: Exibir estas métricas no resumo geral do curso e nos detalhes de cada UC.
 
 ## 🏖️ Fase 4: Gestão de Tempos Livres e Afastamentos
 **Foco:** Flexibilidade no calendário para períodos não letivos.
 
-- [ ] **Módulo de Recessos**: Adição de datas pontuais de recesso com descrição personalizada.
-- [ ] **Módulo de Férias e Licenças**: Implementar seleção de períodos de afastamento que suspendam automaticamente o cálculo da carga horária e estendam a data final do curso.
+- [x] **Módulo de Recessos**: Adição de datas pontuais de recesso com descrição personalizada.
+- [x] **Módulo de Férias e Licenças**: Implementar seleção de períodos de afastamento que suspendam automaticamente o cálculo da carga horária e estendam a data final do curso.
 
 ## 📄 Fase 5: Exportação e Experiência de Usuário (PDF)
 **Foco:** Profissionalização da saída de dados.

@@ -21,6 +21,8 @@ const DEFAULT_COLORS = {
   holiday: 'bg-red-300',
   makeup: 'bg-green-300',
   emenda: 'bg-purple-200',
+  recess: 'bg-orange-200',
+  vacation: 'bg-yellow-200',
   weekend: 'bg-gray-200',
 };
 
@@ -46,7 +48,7 @@ const formatDateToISO = (date) => {
   return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()).toISOString().split('T')[0];
 };
 
-const calculateEndDate = (startDate, totalHours, hoursPerDay, weekDays, holidays, emendas, makeupDays = new Set()) => {
+const calculateEndDate = (startDate, totalHours, hoursPerDay, weekDays, holidays, emendas, makeupDays = new Set(), recesses = new Set(), vacations = new Set()) => {
   if (!startDate || !totalHours || totalHours <= 0 || !hoursPerDay || hoursPerDay <= 0 || !weekDays || weekDays.length === 0) {
     return null;
   }
@@ -64,8 +66,8 @@ const calculateEndDate = (startDate, totalHours, hoursPerDay, weekDays, holidays
     const dayOfWeek = currentDate.getDay();
     const dateStr = formatDateToISO(currentDate);
 
-    // Condição: É dia de aula (dia da semana e não feriado/emenda) OU é dia de reposição
-    const isClassDay = weekDays.includes(dayOfWeek) && !holidays.has(dateStr) && !emendas.has(dateStr);
+    // Condição: É dia de aula (dia da semana e não feriado/emenda/recesso) OU é dia de reposição
+    const isClassDay = weekDays.includes(dayOfWeek) && !holidays.has(dateStr) && !emendas.has(dateStr) && !recesses.has(dateStr);
     const isMakeupDay = makeupDays.has(dateStr);
 
     if (isClassDay || isMakeupDay) {
@@ -80,6 +82,62 @@ const calculateEndDate = (startDate, totalHours, hoursPerDay, weekDays, holidays
   return formatDateToISO(currentDate);
 };
 
+const getEffectiveDays = (startDate, endDate, weekDays, holidays, emendas, makeupDays, recesses = new Set(), vacations = new Set()) => {
+  if (!startDate || !endDate || !weekDays) return [];
+  const start = new Date(startDate + 'T12:00:00');
+  const end = new Date(endDate + 'T12:00:00');
+  const days = [];
+  let current = new Date(start);
+
+  // Safety
+  let loopCount = 0;
+  const MAX_LOOPS = 365 * 5;
+
+  while (current <= end && loopCount < MAX_LOOPS) {
+    loopCount++;
+    const dayOfWeek = current.getDay();
+    const dateStr = formatDateToISO(current);
+
+    const isClassDay = weekDays.includes(dayOfWeek) && !holidays.has(dateStr) && !emendas.has(dateStr) && !recesses.has(dateStr) && !vacations.has(dateStr);
+    const isMakeupDay = makeupDays.has(dateStr);
+
+    if (isClassDay || isMakeupDay) {
+      days.push(dateStr);
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return days;
+};
+
+const generateDateRange = (start, end) => {
+  const dates = [];
+  const current = new Date(start + 'T12:00:00');
+  const endDate = new Date(end + 'T12:00:00');
+
+  while (current <= endDate) {
+    dates.push(formatDateToISO(current));
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+};
+
+const calculateMetrics = (totalDays, hoursPerDay) => {
+  // Regra: Máximo 7.5h computáveis por dia (10 aulas de 45min)
+  const effectiveHoursPerDay = Math.min(hoursPerDay, 7.5);
+
+  const totalHours = totalDays * effectiveHoursPerDay;
+
+  // Aulas de 45 min (0.75h)
+  // Total Aulas = Total Horas / 0.75
+  const totalClasses = totalHours / 0.75;
+
+  return {
+    days: totalDays,
+    hours: parseFloat(totalHours.toFixed(1)),
+    classes: Math.floor(totalClasses) // Aulas inteiras
+  };
+};
+
 const ColorPicker = ({ position, onSelectColor, onClose }) => (
   <div className="fixed z-20 p-2 bg-white border rounded-lg shadow-xl" style={{ top: position.y, left: position.x }} onMouseLeave={onClose}>
     <div className="grid grid-cols-4 gap-2">
@@ -88,11 +146,16 @@ const ColorPicker = ({ position, onSelectColor, onClose }) => (
   </div>
 );
 
-const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHoliday, onAddMakeupDay, classWeekDays, onClassWeekDaysChange, courseHours, onCourseHoursChange, hoursPerDay, onHoursPerDayChange, autoCalculateEnd, onAutoCalculateEndChange, onFetchNationalHolidays, isFetchingHolidays, curricularUnits }) => {
+const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHoliday, onAddMakeupDay, onAddRecess, onAddVacationPeriod, classWeekDays, onClassWeekDaysChange, courseHours, onCourseHoursChange, hoursPerDay, onHoursPerDayChange, autoCalculateEnd, onAutoCalculateEndChange, onFetchNationalHolidays, isFetchingHolidays, curricularUnits }) => {
   const [holidayInput, setHolidayInput] = useState('');
   const [holidayNameInput, setHolidayNameInput] = useState('');
   const [makeupInput, setMakeupInput] = useState('');
   const [makeupUnitId, setMakeupUnitId] = useState('');
+  const [recessInput, setRecessInput] = useState('');
+  const [recessNameInput, setRecessNameInput] = useState('');
+  const [vacationStart, setVacationStart] = useState('');
+  const [vacationEnd, setVacationEnd] = useState('');
+  const [vacationName, setVacationName] = useState('');
 
   const handleAddDate = (type) => (e) => {
     e.preventDefault();
@@ -105,6 +168,15 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
       onAddMakeupDay(makeupInput, makeupUnitId);
       setMakeupInput('');
       setMakeupUnitId('');
+    } else if (type === 'recess' && recessInput) {
+      onAddRecess(recessInput, recessNameInput);
+      setRecessInput('');
+      setRecessNameInput('');
+    } else if (type === 'vacation' && vacationStart && vacationEnd) {
+      onAddVacationPeriod({ start: vacationStart, end: vacationEnd, name: vacationName });
+      setVacationStart('');
+      setVacationEnd('');
+      setVacationName('');
     }
   };
 
@@ -196,6 +268,41 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
           </select>
           <button type="submit" className="w-full px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition-colors">
             <FontAwesomeIcon icon={faPlus} className="mr-2" />Adicionar
+          </button>
+        </div>
+      </form>
+
+      <div className="border-t border-gray-200 my-4 pt-4"></div>
+
+      <form onSubmit={handleAddDate('recess')} className="space-y-2">
+        <label htmlFor="recess" className="block text-sm font-medium text-gray-600">Adicionar Recesso (Dia Único)</label>
+        <div className="flex flex-col gap-2">
+          <input type="date" id="recess" value={recessInput} onChange={(e) => setRecessInput(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500" />
+          <input type="text" id="recessName" value={recessNameInput} onChange={(e) => setRecessNameInput(e.target.value)} placeholder="Motivo (ex: Conselho)" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500" />
+          <button type="submit" className="w-full px-4 py-2 bg-orange-500 text-white font-semibold rounded-md hover:bg-orange-600 transition-colors">
+            <FontAwesomeIcon icon={faPlus} className="mr-2" />Adicionar Recesso
+          </button>
+        </div>
+      </form>
+
+      <div className="border-t border-gray-200 my-4 pt-4"></div>
+
+      <form onSubmit={handleAddDate('vacation')} className="space-y-2">
+        <label className="block text-sm font-medium text-gray-600">Adicionar Férias / Licença (Período)</label>
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-500">Início</label>
+              <input type="date" value={vacationStart} onChange={(e) => setVacationStart(e.target.value)} className="w-full p-2 border border-blue-100 rounded-md focus:ring-2 focus:ring-yellow-500 bg-white" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Fim</label>
+              <input type="date" value={vacationEnd} onChange={(e) => setVacationEnd(e.target.value)} className="w-full p-2 border border-blue-100 rounded-md focus:ring-2 focus:ring-yellow-500 bg-white" />
+            </div>
+          </div>
+          <input type="text" value={vacationName} onChange={(e) => setVacationName(e.target.value)} placeholder="Nome (ex: Férias de Julho)" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500" />
+          <button type="submit" className="w-full px-4 py-2 bg-yellow-500 text-white font-semibold rounded-md hover:bg-yellow-600 transition-colors">
+            <FontAwesomeIcon icon={faPlus} className="mr-2" />Adicionar Período
           </button>
         </div>
       </form>
@@ -332,7 +439,7 @@ const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancel
   );
 };
 
-const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWeekDays, onDayClick, holidayNames, makeupNames }) => {
+const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWeekDays, onDayClick, holidayNames, makeupNames, recessNames, vacationDays = new Set(), vacationNames = new Map() }) => {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
 
@@ -340,23 +447,25 @@ const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWe
     const dateStr = formatDateToISO(new Date(year, month, day));
     const dayOfWeek = new Date(year, month, day).getDay();
 
-    if (individualDayColors[dateStr]) return { type: 'individual', className: `${individualDayColors[dateStr]} text-white` };
-    if (dates.holidays.has(dateStr)) return { type: 'holiday', className: `${colors.holiday} text-white` };
-    if (dates.makeupDays.has(dateStr)) return { type: 'makeup', className: `${colors.makeup} text-white` };
-    if (dates.emendas.has(dateStr)) return { type: 'emenda', className: `${colors.emenda} text-white` };
-
-    for (const unit of dates.curricularUnits) {
-      if (dateStr >= unit.startDate && dateStr <= unit.endDate && unit.weekDays.includes(dayOfWeek)) {
-        return { type: 'curricular', className: `${unit.color} text-gray-800` };
-      }
+    if (individualDayColors[dateStr]) {
+      return { type: 'individual', className: individualDayColors[dateStr] };
     }
+    if (dates.holidays.has(dateStr)) return { type: 'holiday', className: colors.holiday };
+    if (dates.recesses.has(dateStr)) return { type: 'recess', className: colors.recess };
+    if (vacationDays.has(dateStr)) return { type: 'vacation', className: colors.vacation };
+    if (dates.emendas.has(dateStr)) return { type: 'emenda', className: colors.emenda };
+    if (dates.makeupDays.has(dateStr)) return { type: 'makeup', className: colors.makeup };
 
-    if (dates.startDate && dates.endDate && dateStr >= dates.startDate && dateStr <= dates.endDate) {
-      if (classWeekDays.includes(dayOfWeek)) return { type: 'class', className: `${colors.class} text-gray-800` };
+    // Verifica se é feriado/emenda/recesso antes de dia de aula
+    if (classWeekDays.includes(dayOfWeek) && !dates.holidays.has(dateStr) && !dates.emendas.has(dateStr) && !dates.recesses.has(dateStr)) {
+      return { type: 'class', className: colors.class };
+    }
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
       return { type: 'weekend', className: `${colors.weekend} text-gray-500` };
     }
     return { type: 'default', className: 'bg-white text-gray-700' };
   }, [year, month, dates, colors, individualDayColors, classWeekDays]);
+
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -380,6 +489,10 @@ const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWe
             const uc = dates.curricularUnits.find(u => String(u.id) === String(ucId));
             const ucName = uc ? uc.name : (ucId || 'Reposição');
             title = `Reposição: ${ucName}`;
+          } else if (dates.recesses.has(dateStr)) {
+            title = `Recesso: ${recessNames.get(dateStr) || 'Recesso'}`;
+          } else if (vacationDays.has(dateStr)) {
+            title = `${vacationNames.get(dateStr) || 'Férias / Licença'}`;
           }
 
           return (
@@ -401,10 +514,12 @@ export default function App() {
   const [turmaName, setTurmaName] = useState('');
   const [dates, setDates] = useState({
     startDate: null, endDate: null, holidays: new Set(),
-    makeupDays: new Set(), emendas: new Set(), curricularUnits: [],
+    makeupDays: new Set(), emendas: new Set(), curricularUnits: [], recesses: new Set(),
   });
+  const [vacationPeriods, setVacationPeriods] = useState([]);
   const [holidayNames, setHolidayNames] = useState(new Map());
   const [makeupNames, setMakeupNames] = useState(new Map());
+  const [recessNames, setRecessNames] = useState(new Map());
   const [isFetchingHolidays, setIsFetchingHolidays] = useState(false);
   const [colors, setColors] = useState(DEFAULT_COLORS);
   const [individualDayColors, setIndividualDayColors] = useState({});
@@ -421,17 +536,46 @@ export default function App() {
     setDates(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+
+  const vacationDays = useMemo(() => {
+    const days = new Set();
+    vacationPeriods.forEach(period => {
+      if (period.start && period.end) {
+        const range = generateDateRange(period.start, period.end);
+        range.forEach(d => days.add(d));
+      }
+    });
+    return days;
+  }, [vacationPeriods]);
+
+  const vacationNames = useMemo(() => {
+    const names = new Map();
+    vacationPeriods.forEach(period => {
+      if (period.start && period.end) {
+        const range = generateDateRange(period.start, period.end);
+        range.forEach(d => names.set(d, period.name || 'Férias/Licença'));
+      }
+    });
+    return names;
+  }, [vacationPeriods]);
+
   // useEffect para recalcular quando necessário
   useEffect(() => {
     if (autoCalculateEnd && dates.startDate && courseHours && courseHours > 0 && hoursPerDay > 0) {
-      const newEndDate = calculateEndDate(dates.startDate, courseHours, hoursPerDay, classWeekDays, dates.holidays, dates.emendas, dates.makeupDays);
+      const newEndDate = calculateEndDate(dates.startDate, courseHours, hoursPerDay, classWeekDays, dates.holidays, dates.emendas, dates.makeupDays, dates.recesses, vacationDays);
 
       // Só atualiza se a data calculada for diferente da atual
       if (newEndDate && newEndDate !== dates.endDate) {
         setDates(prev => ({ ...prev, endDate: newEndDate }));
       }
     }
-  }, [autoCalculateEnd, dates.startDate, courseHours, hoursPerDay, classWeekDays, dates.holidays, dates.emendas, dates.makeupDays]);
+  }, [autoCalculateEnd, dates.startDate, courseHours, hoursPerDay, classWeekDays, dates.holidays, dates.emendas, dates.makeupDays, dates.recesses, vacationDays]);
+
+  const courseMetrics = useMemo(() => {
+    if (!dates.startDate || !dates.endDate) return null;
+    const days = getEffectiveDays(dates.startDate, dates.endDate, classWeekDays, dates.holidays, dates.emendas, dates.makeupDays, dates.recesses, vacationDays);
+    return calculateMetrics(days.length, hoursPerDay);
+  }, [dates.startDate, dates.endDate, classWeekDays, dates.holidays, dates.emendas, dates.makeupDays, dates.recesses, vacationDays, hoursPerDay]);
 
   const handleCourseHoursChange = (e) => {
     setCourseHours(e.target.value);
@@ -499,6 +643,23 @@ export default function App() {
     }
   };
 
+  const addRecess = (dateStr, name = '') => {
+    if (!dateStr) return;
+    const isoDate = formatDateToISO(dateStr);
+    setDates(prev => ({ ...prev, recesses: new Set(prev.recesses).add(isoDate) }));
+    if (name) {
+      setRecessNames(prev => new Map(prev).set(isoDate, name));
+    }
+  };
+
+  const addVacationPeriod = (period) => {
+    setVacationPeriods(prev => [...prev, { ...period, id: Date.now() }]);
+  };
+
+  const removeVacationPeriod = (id) => {
+    setVacationPeriods(prev => prev.filter(p => p.id !== id));
+  };
+
   const removeDateFromList = (listType, date) => {
     if (listType === 'holidays') {
       setDates(prev => {
@@ -524,6 +685,16 @@ export default function App() {
         return { ...prev, [listType]: newSet };
       });
       setMakeupNames(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(date);
+        return newMap;
+      });
+    } else if (listType === 'recesses') {
+      setDates(prev => {
+        const newSet = new Set(prev[listType]); newSet.delete(date);
+        return { ...prev, [listType]: newSet };
+      });
+      setRecessNames(prev => {
         const newMap = new Map(prev);
         newMap.delete(date);
         return newMap;
@@ -595,6 +766,8 @@ export default function App() {
       autoCalculateEnd,
       holidayNames: [...holidayNames.entries()],
       makeupNames: [...makeupNames.entries()],
+      recessNames: [...recessNames.entries()],
+      vacationPeriods,
     };
 
     const jsonString = JSON.stringify(dataToSave, (key, value) => {
@@ -643,6 +816,9 @@ export default function App() {
         if (loadedData.makeupNames) {
           setMakeupNames(new Map(loadedData.makeupNames));
         }
+        if (loadedData.recessNames) {
+          setRecessNames(new Map(loadedData.recessNames));
+        }
 
         if (loadedData.dates) {
           setDates({
@@ -652,20 +828,23 @@ export default function App() {
             makeupDays: new Set(loadedData.dates.makeupDays || []),
             emendas: new Set(loadedData.dates.emendas || []),
             curricularUnits: loadedData.dates.curricularUnits || [],
+            recesses: new Set(loadedData.dates.recesses || []),
           });
         }
 
-        alert('Dados do calendário carregados com sucesso!');
+        if (loadedData.vacationPeriods) {
+          setVacationPeriods(loadedData.vacationPeriods);
+        }
 
+        alert('Dados do calendário carregados com sucesso!');
       } catch (error) {
         console.error("Erro ao carregar o arquivo JSON:", error);
         alert("Erro ao carregar o arquivo. Verifique se é um arquivo JSON válido gerado por este aplicativo.");
       }
     };
     reader.readAsText(file);
-
-    event.target.value = '';
   };
+
 
   const handleDownloadPdf = async () => {
     // 1. Validação inicial e preparação
@@ -865,12 +1044,32 @@ export default function App() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 space-y-6">
+              {courseMetrics && (
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
+                  <h3 className="font-bold text-gray-700 text-lg mb-2">Resumo do Curso</h3>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-blue-50 p-2 rounded">
+                      <div className="text-2xl font-bold text-blue-600">{courseMetrics.days}</div>
+                      <div className="text-xs text-gray-500 font-semibold">Dias</div>
+                    </div>
+                    <div className="bg-blue-50 p-2 rounded">
+                      <div className="text-2xl font-bold text-blue-600">{courseMetrics.hours}</div>
+                      <div className="text-xs text-gray-500 font-semibold">Horas</div>
+                    </div>
+                    <div className="bg-blue-50 p-2 rounded">
+                      <div className="text-2xl font-bold text-blue-600">{courseMetrics.classes}</div>
+                      <div className="text-xs text-gray-500 font-semibold">Aulas</div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <CalendarControls
                 turmaName={turmaName}
                 onTurmaNameChange={(e) => setTurmaName(e.target.value)}
                 onDatesChange={handleDateChange}
                 onAddHoliday={addHolidayAndBridge}
                 onAddMakeupDay={addMakeupDay}
+                onAddRecess={addRecess}
                 classWeekDays={classWeekDays}
                 onClassWeekDaysChange={handleClassWeekDaysChange}
                 courseHours={courseHours}
@@ -902,7 +1101,23 @@ export default function App() {
                       <li key={unit.id} className="flex justify-between items-center text-sm p-2 rounded bg-white shadow-sm">
                         <div className="flex items-center gap-2">
                           <div className={`w-4 h-4 rounded-full ${unit.color}`}></div>
-                          <span>{unit.name}</span>
+                          <div>
+                            <span className="font-semibold block">{unit.name}</span>
+                            {unit.startDate && unit.endDate && (
+                              (() => {
+                                // Filtrar makeup days deste UC (assumindo que makeupNames mapeia Date -> UnitID)
+                                // Note: makeupDays é Set de strings ISO. makeupNames é Map<ISO, ID>.
+                                const ucMakeupDays = new Set([...dates.makeupDays].filter(d => String(makeupNames.get(d)) === String(unit.id)));
+                                const ucDays = getEffectiveDays(unit.startDate, unit.endDate, unit.weekDays, dates.holidays, dates.emendas, ucMakeupDays);
+                                const metrics = calculateMetrics(ucDays.length, hoursPerDay);
+                                return (
+                                  <span className="text-xs text-gray-500 block">
+                                    {metrics.days} dias • {metrics.hours}h • {metrics.classes} aulas
+                                  </span>
+                                );
+                              })()
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <button onClick={() => setEditingUnit(unit)} className="text-blue-500 hover:text-blue-700 font-bold text-xs">
@@ -917,7 +1132,28 @@ export default function App() {
                   </ul>
                 </div>
               )}
+              {vacationPeriods.length > 0 && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-bold text-gray-600 mb-2">Férias e Licenças</h3>
+                  <ul className="space-y-2">
+                    {vacationPeriods.map(period => (
+                      <li key={period.id} className="flex justify-between items-center text-sm p-2 rounded bg-white shadow-sm border-l-4 border-yellow-400">
+                        <div>
+                          <span className="font-bold block">{period.name}</span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(period.start + 'T12:00:00').toLocaleDateString('pt-BR')} até {new Date(period.end + 'T12:00:00').toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        <button onClick={() => removeVacationPeriod(period.id)} className="text-red-500 hover:text-red-700 font-bold text-lg">
+                          <FontAwesomeIcon icon={faTimes} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {renderDateList(dates.holidays, 'holidays', 'Feriados Marcados', holidayNames)}
+              {renderDateList(dates.recesses, 'recesses', 'Recessos Marcados', recessNames)}
               {renderDateList(dates.makeupDays, 'makeupDays', 'Reposições Marcadas', makeupNames)}
             </div>
 
@@ -932,7 +1168,7 @@ export default function App() {
                     Próximo <FontAwesomeIcon icon={faChevronRight} className="ml-2" />
                   </button>
                 </div>
-                <CalendarGrid month={month} year={year} dates={dates} colors={colors} individualDayColors={individualDayColors} classWeekDays={classWeekDays} onDayClick={handleOpenColorPicker} holidayNames={holidayNames} makeupNames={makeupNames} />
+                <CalendarGrid month={month} year={year} dates={dates} colors={colors} individualDayColors={individualDayColors} classWeekDays={classWeekDays} onDayClick={handleOpenColorPicker} holidayNames={holidayNames} makeupNames={makeupNames} recessNames={recessNames} vacationDays={vacationDays} vacationNames={vacationNames} />
               </div>
               <div className="mt-4 p-4 bg-white rounded-lg shadow-sm">
                 <h3 className="font-semibold text-lg mb-3">Legenda (clique para alterar a cor)</h3>
@@ -946,6 +1182,8 @@ export default function App() {
                   ))}
                   <div onClick={(e) => handleOpenColorPicker(e, 'global', 'holiday')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.holiday}`}></div><span>Feriado</span></div>
                   <div onClick={(e) => handleOpenColorPicker(e, 'global', 'emenda')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.emenda}`}></div><span>Emenda</span></div>
+                  <div onClick={(e) => handleOpenColorPicker(e, 'global', 'recess')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.recess}`}></div><span>Recesso</span></div>
+                  <div onClick={(e) => handleOpenColorPicker(e, 'global', 'vacation')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.vacation}`}></div><span>Férias/Licença</span></div>
                   <div onClick={(e) => handleOpenColorPicker(e, 'global', 'makeup')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.makeup}`}></div><span>Reposição</span></div>
                   <div onClick={(e) => handleOpenColorPicker(e, 'global', 'weekend')} className="flex items-center gap-2 cursor-pointer"><div className={`w-5 h-5 rounded shadow-inner ${colors.weekend}`}></div><span>Sem Aula</span></div>
                 </div>
