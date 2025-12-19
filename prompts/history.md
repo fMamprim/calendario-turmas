@@ -31,5 +31,11 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
 ### 🟢 Prompt 7: Limite de Horas Diárias
 - **Usuário (Literal):** "Limite as horas de aula por dia até no máximo 8.;"
 - **Ações:**
-    - Validação de entrada para impedir valores superiores a 8 no campo "Horas de Aula por Dia".
+### 🟢 Prompt 8: Cálculo por UC
+- **Usuário (Literal):** "Implemente a opção de preencher e calcular "Carga Horária do Curso (horas)" e o toggle "Calcular fim do curso automaticamente com base na carga horária" dentro do "Adicionar Unidade Curricular", para que ele possa calcular automaticamente cada unidade curricular.;"
+- **Ações:**
+    - Início da **Fase 2** do Roadmap.
+    - Implementação de campos de carga horária e cálculo automático dentro do formulário de UCs.
+    - Criação de função reutilizável para cálculo de datas.
+
 

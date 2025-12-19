@@ -15,8 +15,8 @@ Este documento detalha o planejamento das futuras funcionalidades e melhorias do
 ## 🧩 Fase 2: Gestão Descentralizada (Nível UC)
 **Foco:** Trazer a inteligência de cálculo para dentro de cada disciplina.
 
-- [ ] **Carga Horária Especializada**: Mover as configurações de "Carga Horária Total" e "Cálculo Automático de Fim" para dentro do formulário de cada UC.
-- [ ] **Cálculo de Término por UC**: O sistema deve calcular individualmente quando cada UC termina com base em sua carga horária específica.
+- [x] **Carga Horária Especializada**: Mover as configurações de "Carga Horária Total" e "Cálculo Automático de Fim" para dentro do formulário de cada UC.
+- [x] **Cálculo de Término por UC**: O sistema deve calcular individualmente quando cada UC termina com base em sua carga horária específica.
 
 ## 📊 Fase 3: Métricas e Estatísticas Detalhadas
 **Foco:** Transparência de dados para o curso completo e para cada UC.

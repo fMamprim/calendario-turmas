@@ -7,6 +7,11 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação de sistema de rastreabilidade via `prompts/history.md`.
 - Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
 
+## [1.4.0] - 2025-12-19
+### Adicionado
+- **Cálculo Inteligente por UC**: Cada Unidade Curricular agora possui seu próprio campo de carga horária e cálculo automático de data de término.
+- **Toggle de Automação**: Opção de ligar/desligar o cálculo automático individualmente por UC.
+
 ## [1.3.1] - 2025-12-19
 ### Adicionado
 - Validação de limite máximo de **8 horas de aula por dia**.

@@ -46,6 +46,40 @@ const formatDateToISO = (date) => {
   return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()).toISOString().split('T')[0];
 };
 
+const calculateEndDate = (startDate, totalHours, hoursPerDay, weekDays, holidays, emendas, makeupDays = new Set()) => {
+  if (!startDate || !totalHours || totalHours <= 0 || !hoursPerDay || hoursPerDay <= 0 || !weekDays || weekDays.length === 0) {
+    return null;
+  }
+
+  const daysNeeded = Math.ceil(totalHours / hoursPerDay);
+  let currentDate = new Date(startDate + 'T12:00:00');
+  let daysCount = 0;
+
+  // Safety break to prevent infinite loops (e.g. if all days are holidays/weekends for a year)
+  let loopSafety = 0;
+  const MAX_LOOPS = 365 * 2;
+
+  while (daysCount < daysNeeded && loopSafety < MAX_LOOPS) {
+    loopSafety++;
+    const dayOfWeek = currentDate.getDay();
+    const dateStr = formatDateToISO(currentDate);
+
+    // Condição: É dia de aula (dia da semana e não feriado/emenda) OU é dia de reposição
+    const isClassDay = weekDays.includes(dayOfWeek) && !holidays.has(dateStr) && !emendas.has(dateStr);
+    const isMakeupDay = makeupDays.has(dateStr);
+
+    if (isClassDay || isMakeupDay) {
+      daysCount++;
+    }
+
+    if (daysCount < daysNeeded) {
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+  }
+
+  return formatDateToISO(currentDate);
+};
+
 const ColorPicker = ({ position, onSelectColor, onClose }) => (
   <div className="fixed z-20 p-2 bg-white border rounded-lg shadow-xl" style={{ top: position.y, left: position.x }} onMouseLeave={onClose}>
     <div className="grid grid-cols-4 gap-2">
@@ -169,22 +203,32 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
   );
 };
 
-const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancelEdit, generalWeekDays }) => {
-  const initialFormState = { name: '', startDate: '', endDate: '', weekDays: [] };
+const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancelEdit, generalWeekDays, holidays, emendas, makeupDays, hoursPerDay }) => {
+  const initialFormState = { name: '', startDate: '', endDate: '', weekDays: [], hours: '', autoCalculate: false };
   const [unit, setUnit] = useState(initialFormState);
   const isEditing = !!editingUnit;
 
   useEffect(() => {
     if (isEditing) {
-      setUnit(editingUnit);
+      setUnit(editingUnit); // Assuming editingUnit now has hours and autoCalculate
     } else {
       setUnit(initialFormState);
     }
   }, [editingUnit]);
 
+  useEffect(() => {
+    if (unit.autoCalculate && unit.startDate && unit.hours && unit.hours > 0 && unit.weekDays.length > 0) {
+      // Assume global hoursPerDay for UC calculation for now, unless UC has specific hours/day (not requested yet)
+      const newEndDate = calculateEndDate(unit.startDate, unit.hours, hoursPerDay, unit.weekDays, holidays, emendas, makeupDays);
+      if (newEndDate && newEndDate !== unit.endDate) {
+        setUnit(prev => ({ ...prev, endDate: newEndDate }));
+      }
+    }
+  }, [unit.autoCalculate, unit.startDate, unit.hours, unit.weekDays, hoursPerDay, holidays, emendas, makeupDays]);
+
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setUnit(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setUnit(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleWeekDayChange = (dayIndex) => {
@@ -218,6 +262,29 @@ const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancel
           <label htmlFor="name" className="block text-sm font-medium text-gray-600 mb-1">Nome da UC</label>
           <input type="text" name="name" value={unit.name} onChange={handleInputChange} placeholder="Ex: Matemática" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500" />
         </div>
+
+        <div className="grid grid-cols-2 gap-4 bg-gray-100 p-3 rounded-md border border-gray-200">
+          <div className="col-span-2 flex items-center justify-between mb-2">
+            <label htmlFor="ucAutoCalc" className="text-sm font-medium text-gray-700 select-none cursor-pointer flex-1">
+              Calcular fim automaticamente
+            </label>
+            <button
+              type="button"
+              onClick={() => setUnit(prev => ({ ...prev, autoCalculate: !prev.autoCalculate }))}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${unit.autoCalculate ? 'bg-teal-600' : 'bg-gray-300'}`}
+            >
+              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${unit.autoCalculate ? 'translate-x-5' : 'translate-x-1'}`} />
+            </button>
+          </div>
+
+          {unit.autoCalculate && (
+            <div className="col-span-2 mb-2">
+              <label htmlFor="ucHours" className="block text-xs font-medium text-gray-500 mb-1">Carga Horária da UC (h)</label>
+              <input type="number" name="hours" value={unit.hours} onChange={handleInputChange} placeholder="Ex: 40" className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="startDate" className="block text-sm font-medium text-gray-600 mb-1">Início</label>
@@ -225,7 +292,7 @@ const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancel
           </div>
           <div>
             <label htmlFor="endDate" className="block text-sm font-medium text-gray-600 mb-1">Fim</label>
-            <input type="date" name="endDate" value={unit.endDate} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-md" />
+            <input type="date" name="endDate" value={unit.endDate} onChange={handleInputChange} disabled={unit.autoCalculate} className="w-full p-2 border border-gray-300 rounded-md disabled:bg-gray-200 disabled:cursor-not-allowed" />
           </div>
         </div>
         <div>
@@ -357,40 +424,14 @@ export default function App() {
   // useEffect para recalcular quando necessário
   useEffect(() => {
     if (autoCalculateEnd && dates.startDate && courseHours && courseHours > 0 && hoursPerDay > 0) {
-      // Calcula quantos dias de aula são necessários
-      const daysNeeded = Math.ceil(courseHours / hoursPerDay);
-
-      let currentDate = new Date(dates.startDate + 'T12:00:00');
-      let daysCount = 0;
-
-      // Avança no calendário contando apenas os dias de aula
-      while (daysCount < daysNeeded) {
-        const dayOfWeek = currentDate.getDay();
-        const dateStr = formatDateToISO(currentDate);
-
-        // Verifica se é um dia de aula (não é feriado, não é emenda, está nos dias da semana)
-        // OU se é um dia de reposição
-        if (
-          (classWeekDays.includes(dayOfWeek) && !dates.holidays.has(dateStr) && !dates.emendas.has(dateStr)) ||
-          dates.makeupDays.has(dateStr)
-        ) {
-          daysCount++;
-        }
-
-        // Se ainda não chegou ao número de dias necessários, avança para o próximo dia
-        if (daysCount < daysNeeded) {
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-      }
-
-      const endDateStr = formatDateToISO(currentDate);
+      const newEndDate = calculateEndDate(dates.startDate, courseHours, hoursPerDay, classWeekDays, dates.holidays, dates.emendas, dates.makeupDays);
 
       // Só atualiza se a data calculada for diferente da atual
-      if (endDateStr !== dates.endDate) {
-        setDates(prev => ({ ...prev, endDate: endDateStr }));
+      if (newEndDate && newEndDate !== dates.endDate) {
+        setDates(prev => ({ ...prev, endDate: newEndDate }));
       }
     }
-  }, [autoCalculateEnd, dates.startDate, courseHours, hoursPerDay, classWeekDays, dates.holidays, dates.emendas]);
+  }, [autoCalculateEnd, dates.startDate, courseHours, hoursPerDay, classWeekDays, dates.holidays, dates.emendas, dates.makeupDays]);
 
   const handleCourseHoursChange = (e) => {
     setCourseHours(e.target.value);
@@ -842,7 +883,17 @@ export default function App() {
                 isFetchingHolidays={isFetchingHolidays}
                 curricularUnits={dates.curricularUnits}
               />
-              <CurricularUnitControls onAddUnit={handleAddUnit} onUpdateUnit={handleUpdateUnit} editingUnit={editingUnit} onCancelEdit={() => setEditingUnit(null)} generalWeekDays={classWeekDays} />
+              <CurricularUnitControls
+                onAddUnit={handleAddUnit}
+                onUpdateUnit={handleUpdateUnit}
+                editingUnit={editingUnit}
+                onCancelEdit={() => setEditingUnit(null)}
+                generalWeekDays={classWeekDays}
+                holidays={dates.holidays}
+                emendas={dates.emendas}
+                makeupDays={dates.makeupDays}
+                hoursPerDay={hoursPerDay}
+              />
               {dates.curricularUnits.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <h3 className="font-bold text-gray-600 mb-2">UCs Adicionadas</h3>
