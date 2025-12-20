@@ -7,6 +7,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação de sistema de rastreabilidade via `prompts/history.md`.
 - Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
 
+## [1.10.1] - 2025-12-19
+### Corrigido
+- Bug no formulário de férias onde o botão "Adicionar" não funcionava por falta de prop.
+- Grid do calendário ausente no PDF Completo devido a erros de posicionamento e cálculo de altura da imagem.
+- Falta de atualização em tempo real do calendário ao adicionar férias (dependência de hook).
+
 ## [1.10.0] - 2025-12-19
 ### Adicionado
 - Formato HH:MM para campos de horas por dia (global e por UC).
@@ -80,6 +86,21 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
     - Implementação de bordas finas (0.1mm, cinza) ao redor de cada dia.
     - Ajuste dinâmico de layout baseado na presença do nome da turma.
     - Documentação da versão 1.10.0.
+
+### 🟢 Prompt 22: Correção do Fluxo de Férias
+- **Usuário (Literal):** "As férias não apareceram no calendário quando eu inseri. As férias não aparecem lá em baixo para eu poder editar ou remover."
+- **Ações:**
+    - Identificado que `onAddVacationPeriod` estava faltando nas props de `CalendarControls`.
+    - Correção da passagem da função no `App.jsx`.
+    - Adição de `vacationDays` às dependências do `getDayStyle` para garantir re-renderização imediata.
+
+### 🟢 Prompt 23: Correção de Renderização do PDF
+- **Usuário (Literal):** "No pdf da impressão do calendário completo, não está aparecendo o calendário. Em anexo está um print do resultado que foi gerado."
+- **Ações:**
+    - Ajuste no cálculo de altura e largura da imagem capturada no `generateFullPdf`.
+    - Correção do posicionamento da legenda e do grid na página do PDF.
+    - Documentação da versão 1.10.1.
+
 
 
 - Lógica de Toggle (Adicionar/Remover) na seleção de cores manuais.

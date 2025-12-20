@@ -1222,7 +1222,8 @@ export default function App() {
             }
           });
           const imgData = canvas.toDataURL('image/png');
-          const imgHeight = (canvas.height * (pdfWidth - 20)) / canvas.width;
+          const imgWidth = pdfWidth - 20;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
           if (loopDate.getTime() !== new Date(start.getFullYear(), start.getMonth(), 1).getTime()) {
             pdfDoc.addPage();
@@ -1238,10 +1239,13 @@ export default function App() {
           pdfDoc.setFontSize(12).setFont(undefined, 'normal');
           pdfDoc.text(monthName.charAt(0).toUpperCase() + monthName.slice(1), 14, 22);
 
-          pdfDoc.addImage(imgData, 'PNG', 10, 30, pdfWidth - 20, imgHeight);
+          // Imagem do calendário
+          const calendarY = 28;
+          pdfDoc.addImage(imgData, 'PNG', 10, calendarY, imgWidth, imgHeight);
 
           // --- AJUSTE: Desenhando a legenda em todas as páginas ---
-          drawLegend(pdfDoc, imgHeight + 40);
+          const legendY = calendarY + imgHeight + 5;
+          drawLegend(pdfDoc, legendY);
         }
         loopDate.setMonth(loopDate.getMonth() + 1);
       }
@@ -1389,6 +1393,7 @@ export default function App() {
                 onFetchNationalHolidays={fetchNationalHolidays}
                 isFetchingHolidays={isFetchingHolidays}
                 curricularUnits={dates.curricularUnits}
+                onAddVacationPeriod={addVacationPeriod}
               />
               <CurricularUnitControls
                 onAddUnit={handleAddUnit}
