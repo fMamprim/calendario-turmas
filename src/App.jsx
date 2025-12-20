@@ -160,7 +160,7 @@ const ColorPicker = ({ position, onSelectColor, onClose }) => (
   </div>
 );
 
-const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHoliday, onAddMakeupDay, onAddRecess, onAddVacationPeriod, classWeekDays, onClassWeekDaysChange, courseHours, onCourseHoursChange, hoursPerDay, onHoursPerDayChange, autoCalculateEnd, onAutoCalculateEndChange, onFetchNationalHolidays, isFetchingHolidays, curricularUnits }) => {
+const CalendarControls = ({ turmaName, onTurmaNameChange, startDate, endDate, onDatesChange, onAddHoliday, onAddMakeupDay, onAddRecess, onAddVacationPeriod, classWeekDays, onClassWeekDaysChange, courseHours, onCourseHoursChange, hoursPerDay, onHoursPerDayChange, autoCalculateEnd, onAutoCalculateEndChange, onFetchNationalHolidays, isFetchingHolidays, curricularUnits }) => {
   const [holidayInput, setHolidayInput] = useState('');
   const [holidayNameInput, setHolidayNameInput] = useState('');
   const [makeupInput, setMakeupInput] = useState('');
@@ -204,11 +204,11 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label htmlFor="startDate" className="block text-sm font-medium text-gray-600 mb-1">Início do Semestre</label>
-          <input type="date" id="startDate" name="startDate" onChange={onDatesChange} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" />
+          <input type="date" id="startDate" name="startDate" value={startDate || ''} onChange={onDatesChange} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" />
         </div>
         <div>
           <label htmlFor="endDate" className="block text-sm font-medium text-gray-600 mb-1">Fim do Semestre</label>
-          <input type="date" id="endDate" name="endDate" onChange={onDatesChange} disabled={autoCalculateEnd} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" />
+          <input type="date" id="endDate" name="endDate" value={endDate || ''} onChange={onDatesChange} disabled={autoCalculateEnd} className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" />
         </div>
       </div>
       <div className="space-y-4">
@@ -920,32 +920,34 @@ export default function App() {
         setHoursPerDay(loadedData.hoursPerDay || 4);
         setAutoCalculateEnd(loadedData.autoCalculateEnd || false);
 
-        // Carregar Maps de nomes
-        if (loadedData.holidayNames) {
-          setHolidayNames(new Map(loadedData.holidayNames));
-        }
-        if (loadedData.makeupNames) {
-          setMakeupNames(new Map(loadedData.makeupNames));
-        }
-        if (loadedData.recessNames) {
-          setRecessNames(new Map(loadedData.recessNames));
-        }
+        // Carregar Maps de nomes (resetar se não houver no JSON)
+        setHolidayNames(loadedData.holidayNames ? new Map(loadedData.holidayNames) : new Map());
+        setMakeupNames(loadedData.makeupNames ? new Map(loadedData.makeupNames) : new Map());
+        setRecessNames(loadedData.recessNames ? new Map(loadedData.recessNames) : new Map());
 
         if (loadedData.dates) {
           setDates({
-            startDate: loadedData.dates.startDate,
-            endDate: loadedData.dates.endDate,
+            startDate: loadedData.dates.startDate || null,
+            endDate: loadedData.dates.endDate || null,
             holidays: new Set(loadedData.dates.holidays || []),
             makeupDays: new Set(loadedData.dates.makeupDays || []),
             emendas: new Set(loadedData.dates.emendas || []),
             curricularUnits: loadedData.dates.curricularUnits || [],
             recesses: new Set(loadedData.dates.recesses || []),
           });
+        } else {
+          setDates({
+            startDate: null,
+            endDate: null,
+            holidays: new Set(),
+            makeupDays: new Set(),
+            emendas: new Set(),
+            curricularUnits: [],
+            recesses: new Set(),
+          });
         }
 
-        if (loadedData.vacationPeriods) {
-          setVacationPeriods(loadedData.vacationPeriods);
-        }
+        setVacationPeriods(loadedData.vacationPeriods || []);
 
         alert('Dados do calendário carregados com sucesso!');
       } catch (error) {
@@ -1542,6 +1544,8 @@ export default function App() {
               <CalendarControls
                 turmaName={turmaName}
                 onTurmaNameChange={(e) => setTurmaName(e.target.value)}
+                startDate={dates.startDate}
+                endDate={dates.endDate}
                 onDatesChange={handleDateChange}
                 onAddHoliday={addHolidayAndBridge}
                 onAddMakeupDay={addMakeupDay}

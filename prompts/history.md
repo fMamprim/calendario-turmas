@@ -161,4 +161,36 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
     - Correção do posicionamento da legenda e do grid na página do PDF.
     - Documentação da versão 1.10.1.
 
+### 🟢 Prompt 24: Refatoração do PDF Compacto (Paridade)
+- **Usuário (Literal):** "Está vendo o resultado do calendário compacto neste print? Em comparação com o calendário completo está faltando no calendário compacto: - Logo do senai - Nome da turma - Mesmo padrão de fontes e negritos do calendário completo - Página de resumo do curso igual a do calendário completo - As unidades curriculares não estão aparecendo no pdf compacto Erros: - Legenda está muito grudada com o calendário - Os dias, horas e aulas tem que aparecer na página de resumo."
+- **Ações:**
+    - Refatoração total da função `generateCompactPdf`.
+    - Adição de Logo SENAI, Nome da Turma e Título em negrito.
+    - Inclusão dinâmica de todas as UCs na legenda (com quebra de linha).
+    - Implementação da "Página de Resumo" ao final do PDF Compacto.
+    - Ajuste de margens e fontes para paridade visual com o PDF Completo.
+
+### 🟢 Prompt 25: Métricas Detalhadas por UC no Resumo
+- **Usuário (Literal):** "Na página de resumo do curso do pdf (compacto e completo) tem que aparecer os dias, horas e aulas de cada UC e do curso todo."
+- **Ações:**
+    - Atualização da página de resumo em ambos os geradores de PDF (`generateFullPdf` e `generateCompactPdf`).
+    - Adição de seção "Métricas por Unidade Curricular" listando dias, horas e aulas de cada disciplina.
+    - Documentação da versão 1.11.0.
+
+### 🟢 Prompt 26: Férias no Resumo do PDF
+- **Usuário (Literal):** "As férias precisam aparecer no resumo do curso do pdf."
+- **Ações:**
+    - Modificação da seção "Datas Importantes" na página de resumo.
+    - Implementação de listagem de períodos (Início até Fim) para Férias e Licenças.
+    - Garantia de que quebras de página ocorram se a lista de férias for longa.
+
+### 🟢 Prompt 27: Correção de Importação JSON (Configurações Gerais)
+- **Usuário (Literal):** "Quando eu carrego um json, ele não sobrescreve os dados escritos nas configurações gerais"
+- **Ações:**
+    - Identificado que os inputs em `CalendarControls` não eram 100% controlados (faltava a prop `value` nos campos React).
+    - Vinculação de `startDate` e `endDate` aos respectivos inputs.
+    - Refatoração de `handleImportJson` para forçar o reset de estados em caso de dados ausentes.
+    - Documentação da versão 1.10.2.
+
+
 

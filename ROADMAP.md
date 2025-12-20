@@ -41,7 +41,16 @@ Este documento detalha o planejamento das futuras funcionalidades e melhorias do
     - [x] **Calendário Compacto**: Visualização de Janeiro a Dezembro em uma única página A4.
 - [x] **Toggle de Formato**: Interruptor simples e moderno para escolha do layout antes de gerar o PDF.
 
+## 🚀 Fase 6: Polimento e Conectividade
+**Foco:** Refinamento de UX, paridade de relatórios e correções técnicas.
+
+- [x] **Paridade de Relatórios**: Página de resumo idêntica tanto para PDF Completo quanto Compacto, incluindo métricas por UC.
+- [x] **Formato de Tempo Intuitivo**: Substituição do input decimal por seletor de tempo HH:MM.
+- [x] **Sincronização de JSON**: Garantir que a restauração via arquivo sobrescreva 100% das configurações de interface.
+- [x] **Bordas Técnicas no PDF**: Melhoria da visualização do calendário compacto com bordas finas para impressão.
+
 ---
 
 > [!NOTE]
 > Este roadmap segue a ordem de prioridades técnicas, onde as bases de cálculo e estrutura (Fases 1 e 2) precedem as métricas (Fase 3) e visualizações (Fase 5).
+

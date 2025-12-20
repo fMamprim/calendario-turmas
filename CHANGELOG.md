@@ -7,6 +7,21 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação de sistema de rastreabilidade via `prompts/history.md`.
 - Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
 
+## [1.11.0] - 2025-12-19
+### Adicionado
+- Página de resumo completa no PDF Compacto.
+- Métricas detalhadas por UC (dias, horas, aulas) na página de resumo de ambos os PDFs.
+- Listagem de períodos de férias e licenças na seção de Datas Importantes do PDF.
+- Suporte a múltiplas UCs na legenda do PDF Compacto com quebra automática.
+### Modificado
+- Padronização de fontes e negritos entre PDF Completo e Compacto.
+- Aumento do espaçamento entre legenda e calendário no PDF Compacto.
+
+## [1.10.2] - 2025-12-19
+### Corrigido
+- Bug na importação de JSON onde campos de "Início" e "Fim" do curso não atualizavam visualmente.
+- Lógica de importação aprimorada para resetar estados ausentes no JSON.
+
 ## [1.10.1] - 2025-12-19
 ### Corrigido
 - Bug no formulário de férias onde o botão "Adicionar" não funcionava por falta de prop.
@@ -100,6 +115,24 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
     - Ajuste no cálculo de altura e largura da imagem capturada no `generateFullPdf`.
     - Correção do posicionamento da legenda e do grid na página do PDF.
     - Documentação da versão 1.10.1.
+
+### 🟢 Prompt 24: Refatoração do PDF Compacto
+- **Usuário (Literal):** "Está vendo o resultado do calendário compacto neste print? Em comparação com o calendário completo está faltando no calendário compacto: Logo do senai, Nome da turma, Mesmo padrão de fontes e negritos do calendário completo, Página de resumo do curso igual a do calendário completo, As unidades curriculares não estão aparecendo no pdf compacto. Erros: Legenda está muito grudada com o calendário, Os dias, horas e aulas tem que aparecer na página de resumo."
+- **Ações:**
+    - Refatoração completa do `generateCompactPdf`.
+    - Adição de UCs na legenda e ajuste de espaçamento.
+    - Implementação de página de resumo idêntica à do PDF Completo.
+    - Inclusão de métricas detalhadas (dias, horas, aulas) por UC no resumo.
+    - Adição de períodos de férias na seção de datas importantes do PDF.
+
+### 🟢 Prompt 25: Correção de Sobrescrita no Import
+- **Usuário (Literal):** "Quando eu carrego um json, ele não sobrescreve os dados escritos nas configurações gerais"
+- **Ações:**
+    - Identificado que inputs de data no `CalendarControls` não eram controlados (faltava `value`).
+    - Adição de `startDate` e `endDate` como props em `CalendarControls`.
+    - Refatoração de `handleImportJson` para resetar estados caso campos estejam ausentes no JSON.
+    - Documentação da versão 1.10.2.
+
 
 
 
