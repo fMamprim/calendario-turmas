@@ -192,5 +192,20 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
     - Refatoração de `handleImportJson` para forçar o reset de estados em caso de dados ausentes.
     - Documentação da versão 1.10.2.
 
+### 🟢 Prompt 28: Ajuste de Layout no PDF Compacto
+- **Usuário (Literal):** "No pdf calendario compacto quero que a legenda apareça abaixo do calendário e não em cima"
+- **Ações:**
+    - Reposicionamento da legenda para o rodapé do PDF Compacto.
+    - Ajuste de `rowHeight` (53mm) para garantir o encaixe de todos os elementos na página.
+    - Documentação da versão 1.11.1.
+
+### 🟢 Prompt 29: Correção de Renderização de UCs no PDF Compacto
+- **Usuário (Literal):** "Inseri uma data calculada automaticamente com uma carga horária, e na hora de gerar o pdf compacto não apareceu as aulas. Inclusive tentei mudar a cor da aula e não aparece também."
+- **Ações:**
+    - Implementação da lógica de detecção de Unidades Curriculares (UCs) ativas no loop de dias do `generateCompactPdf`.
+    - Replicação da ordem de prioridade de cores do `getDayStyle` (Visual) para o PDF.
+    - Correção de erro de variáveis duplicadas (`cols`, `cellW`, `cellH`) após a inserção da lógica.
+    - Documentação da versão 1.11.1.
+
 
 

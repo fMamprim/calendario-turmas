@@ -7,6 +7,14 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação de sistema de rastreabilidade via `prompts/history.md`.
 - Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
 
+## [1.11.1] - 2025-12-19
+### Corrigido
+- Renderização de cores e aulas de UCs no PDF Compacto.
+- Erro de variáveis duplicadas no código fonte.
+### Modificado
+- Legenda do PDF Compacto movida para o rodapé para melhor aproveitamento de espaço.
+- Ajuste na altura do grid mensal para acomodar a nova posição da legenda.
+
 ## [1.11.0] - 2025-12-19
 ### Adicionado
 - Página de resumo completa no PDF Compacto.

@@ -1025,37 +1025,11 @@ export default function App() {
         doc.text(`${courseMetrics.days} dias • ${courseMetrics.hours}h • ${courseMetrics.classes} aulas`, 148.5, metricsY, { align: 'center' });
       }
 
-      // Legenda (incluindo UCs)
-      doc.setFontSize(8);
-      let legendX = 10;
-      const legendY = turmaName ? 30 : 24;
-      const legendItems = [
-        { label: 'Aula', color: colors.class },
-        ...dates.curricularUnits.map(uc => ({ label: uc.name, color: uc.color })),
-        { label: 'Feriado', color: colors.holiday },
-        { label: 'Recesso', color: colors.recess },
-        { label: 'Férias', color: colors.vacation },
-        { label: 'Reposição', color: colors.makeup },
-        { label: 'Emenda', color: colors.emenda }
-      ];
-
-      let currentLegendY = legendY;
-      legendItems.forEach((item, index) => {
-        if (legendX + 30 > 287) { // Quebra de linha se não couber
-          legendX = 10;
-          currentLegendY += 5;
-        }
-        doc.setFillColor(getHex(item.color));
-        doc.rect(legendX, currentLegendY, 4, 4, 'F');
-        doc.text(item.label, legendX + 5, currentLegendY + 3);
-        legendX += 30;
-      });
-
-      // Grid (com mais espaço da legenda)
+      // Grid
       const startX = 10;
-      const startY = currentLegendY + 10; // Mais espaço
+      const startY = turmaName ? 30 : 24;
       const colWidth = 68;
-      const rowHeight = 55;
+      const rowHeight = 53; // Reduzido levemente para caber a legenda embaixo
       const cols = 4;
       const cellW = 8;
       const cellH = 6;
@@ -1098,14 +1072,36 @@ export default function App() {
               else colorsToDraw = [getHex(c)];
             } else {
               let singleHex = '#ffffff';
+
+              // 1. Verificações de alta prioridade (Feriados, Recesso, etc)
               if (dates.holidays.has(dateStr)) singleHex = getHex(colors.holiday);
               else if (dates.recesses.has(dateStr)) singleHex = getHex(colors.recess);
               else if (vacationDays.has(dateStr)) singleHex = getHex(colors.vacation);
               else if (dates.emendas.has(dateStr)) singleHex = getHex(colors.emenda);
               else if (dates.makeupDays.has(dateStr)) singleHex = getHex(colors.makeup);
-              else if (classWeekDays.includes(dayOfWeek)) singleHex = getHex(colors.class);
-              else if (dayOfWeek === 0 || dayOfWeek === 6) singleHex = getHex(colors.weekend);
-              colorsToDraw = [singleHex];
+              else {
+                // 2. Verifica se é dia de UC (Unidade Curricular)
+                const activeUCs = dates.curricularUnits.filter(uc =>
+                  uc.startDate && uc.endDate &&
+                  dateStr >= uc.startDate && dateStr <= uc.endDate &&
+                  uc.weekDays.includes(dayOfWeek)
+                );
+
+                if (activeUCs.length > 0) {
+                  colorsToDraw = activeUCs.map(uc => getHex(uc.color));
+                  // Se tiver UCs, define singleHex como vazio para não sobrescrever, ou trata fluxo diferenciado
+                  // O fluxo abaixo espera colorsToDraw preenchido ou singleHex
+                } else {
+                  // 3. Fallback: Dia de Aula Genérico
+                  if (classWeekDays.includes(dayOfWeek)) singleHex = getHex(colors.class);
+                  else if (dayOfWeek === 0 || dayOfWeek === 6) singleHex = getHex(colors.weekend);
+                }
+              }
+
+              // Se colorsToDraw ainda estiver vazio, usa singleHex
+              if (colorsToDraw.length === 0) {
+                colorsToDraw = [singleHex];
+              }
             }
 
             const cellX = curX + (wd * cellW);
@@ -1148,6 +1144,35 @@ export default function App() {
           if (d > daysInMonth) break;
         }
       }
+
+      // Legenda no rodapé
+      doc.setFontSize(8);
+      let legendX = 10;
+      // Calcula posição Y da legenda baseado no fim do grid
+      const gridEndY = startY + (3 * rowHeight);
+      let currentLegendY = gridEndY + 5;
+
+      const legendItems = [
+        { label: 'Aula', color: colors.class },
+        ...dates.curricularUnits.map(uc => ({ label: uc.name, color: uc.color })),
+        { label: 'Feriado', color: colors.holiday },
+        { label: 'Recesso', color: colors.recess },
+        { label: 'Férias', color: colors.vacation },
+        { label: 'Reposição', color: colors.makeup },
+        { label: 'Emenda', color: colors.emenda }
+      ];
+
+      legendItems.forEach((item, index) => {
+        // Verifica se cabe na linha (largura ~280mm útil)
+        if (legendX + 40 > 287) {
+          legendX = 10;
+          currentLegendY += 5;
+        }
+        doc.setFillColor(getHex(item.color));
+        doc.rect(legendX, currentLegendY, 4, 4, 'F');
+        doc.text(item.label, legendX + 5, currentLegendY + 3);
+        legendX += 40; // Espaçamento horizontal entre itens
+      });
 
       doc.save(`Calendario_Compacto_${year}.pdf`);
 
