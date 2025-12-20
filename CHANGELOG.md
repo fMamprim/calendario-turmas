@@ -7,6 +7,11 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação de sistema de rastreabilidade via `prompts/history.md`.
 - Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
 
+## [1.7.0] - 2025-12-19
+### Adicionado
+- **PDF Compacto**: Nova opção de exportação com layout anual (12 meses) em uma única página A4 (Paisagem).
+- **Modal de Opções**: Escolha entre layout "Completo" (detalhado) ou "Compacto" ao baixar o PDF.
+
 ## [1.6.0] - 2025-12-19
 ### Adicionado
 - Sistema de gestão de Férias e Licenças (períodos longos).

@@ -520,6 +520,10 @@ export default function App() {
   const [holidayNames, setHolidayNames] = useState(new Map());
   const [makeupNames, setMakeupNames] = useState(new Map());
   const [recessNames, setRecessNames] = useState(new Map());
+
+
+  const [showPdfModal, setShowPdfModal] = useState(false); // Novo estado
+  const [pdfMode, setPdfMode] = useState('full'); // 'full' ou 'compact'
   const [isFetchingHolidays, setIsFetchingHolidays] = useState(false);
   const [colors, setColors] = useState(DEFAULT_COLORS);
   const [individualDayColors, setIndividualDayColors] = useState({});
@@ -846,7 +850,156 @@ export default function App() {
   };
 
 
-  const handleDownloadPdf = async () => {
+
+  const handleDownloadClick = () => {
+    setShowPdfModal(true);
+  };
+
+  const handleConfirmPdfGeneration = () => {
+    setShowPdfModal(false);
+    if (pdfMode === 'full') {
+      generateFullPdf();
+    } else {
+      generateCompactPdf();
+    }
+  };
+
+  const generateCompactPdf = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const year = currentDate.getFullYear();
+
+      const TAILWIND_COLORS = {
+        'bg-blue-200': '#bfdbfe', 'bg-blue-500': '#3b82f6',
+        'bg-red-300': '#fca5a5', 'bg-red-500': '#ef4444',
+        'bg-green-300': '#86efac', 'bg-green-500': '#22c55e',
+        'bg-purple-200': '#e9d5ff', 'bg-purple-500': '#a855f7',
+        'bg-orange-200': '#fed7aa', 'bg-orange-500': '#f97316',
+        'bg-yellow-200': '#fef08a', 'bg-yellow-500': '#eab308',
+        'bg-gray-200': '#e5e7eb', 'bg-gray-500': '#6b7280',
+        'bg-teal-600': '#0d9488',
+        'bg-indigo-200': '#c7d2fe', 'bg-pink-200': '#fbcfe8',
+        'bg-white': '#ffffff'
+      };
+
+      const getHex = (className) => {
+        if (!className) return '#ffffff';
+        const bgMatch = className.match(/bg-[a-z]+-[0-9]+/);
+        if (bgMatch) return TAILWIND_COLORS[bgMatch[0]] || '#ffffff';
+        return '#ffffff';
+      };
+
+      // Título
+      doc.setFontSize(18);
+      doc.setTextColor(40);
+      doc.text(`Calendário Escolar ${year}`, 148.5, 12, { align: 'center' });
+
+      // Legenda
+      doc.setFontSize(8);
+      let legendX = 20;
+      const legendY = 18;
+      const legendItems = [
+        { label: 'Aula', color: colors.class },
+        { label: 'Feriado', color: colors.holiday },
+        { label: 'Recesso', color: colors.recess },
+        { label: 'Férias', color: colors.vacation },
+        { label: 'Reposição', color: colors.makeup },
+        { label: 'Emenda', color: colors.emenda }
+      ];
+      legendItems.forEach(item => {
+        doc.setFillColor(getHex(item.color));
+        doc.rect(legendX, legendY, 4, 4, 'F');
+        doc.text(item.label, legendX + 5, legendY + 3);
+        legendX += 25;
+      });
+
+      // Grid
+      const startX = 10;
+      const startY = 28;
+      const colWidth = 68;
+      const rowHeight = 55;
+      const cols = 4;
+      const cellW = 8;
+      const cellH = 6;
+
+      for (let m = 0; m < 12; m++) {
+        const col = m % cols;
+        const row = Math.floor(m / cols);
+        const curX = startX + (col * colWidth);
+        const curY = startY + (row * rowHeight);
+
+        const mDate = new Date(year, m, 1);
+        const mName = mDate.toLocaleString('pt-BR', { month: 'long' });
+        doc.setFontSize(11);
+        doc.setTextColor(0);
+        doc.text(mName.charAt(0).toUpperCase() + mName.slice(1), curX + (colWidth / 2), curY - 2, { align: 'center' });
+
+        doc.setFontSize(7);
+        doc.setTextColor(100);
+        ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].forEach((d, i) => {
+          doc.text(d, curX + 2 + (i * cellW), curY + 2);
+        });
+
+        const firstDay = new Date(year, m, 1).getDay();
+        const daysInMonth = new Date(year, m + 1, 0).getDate();
+
+        let d = 1;
+        for (let w = 0; w < 6; w++) {
+          for (let wd = 0; wd < 7; wd++) {
+            if (w === 0 && wd < firstDay) continue;
+            if (d > daysInMonth) break;
+
+            const dateStr = formatDateToISO(new Date(year, m, d));
+            const dayOfWeek = wd;
+
+            let hex = '#ffffff';
+
+            if (individualDayColors[dateStr]) {
+              hex = getHex(individualDayColors[dateStr]);
+            } else if (dates.holidays.has(dateStr)) {
+              hex = getHex(colors.holiday);
+            } else if (dates.recesses.has(dateStr)) {
+              hex = getHex(colors.recess);
+            } else if (vacationDays.has(dateStr)) {
+              hex = getHex(colors.vacation);
+            } else if (dates.emendas.has(dateStr)) {
+              hex = getHex(colors.emenda);
+            } else if (dates.makeupDays.has(dateStr)) {
+              hex = getHex(colors.makeup);
+            } else if (classWeekDays.includes(dayOfWeek)) {
+              hex = getHex(colors.class);
+            } else if (dayOfWeek === 0 || dayOfWeek === 6) {
+              hex = getHex(colors.weekend);
+            }
+
+            const cellX = curX + (wd * cellW);
+            const cellY = curY + 3 + (w * cellH);
+
+            doc.setFillColor(hex);
+            doc.rect(cellX, cellY, cellW, cellH, 'F');
+
+            doc.setTextColor(0);
+            doc.setFontSize(7);
+            doc.text(String(d), cellX + cellW / 2, cellY + cellH - 1.5, { align: 'center' });
+
+            d++;
+          }
+          if (d > daysInMonth) break;
+        }
+      }
+
+      doc.save(`Calendario_Compacto_${year}.pdf`);
+
+    } catch (error) {
+      console.error("Erro PDF Compacto:", error);
+      alert("Erro ao gerar PDF Compacto.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const generateFullPdf = async () => {
     // 1. Validação inicial e preparação
     if (!dates.startDate || !dates.endDate) {
       alert("Por favor, defina a data de início e fim do semestre primeiro.");
@@ -1214,7 +1367,7 @@ export default function App() {
 
                 {/* --- FIM DA PARTE NOVA --- */}
 
-                <button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="mt-2 w-full py-2 bg-teal-600 text-white font-semibold rounded-md hover:bg-teal-700 transition-colors disabled:bg-teal-300 disabled:cursor-not-allowed">
+                <button onClick={handleDownloadClick} disabled={isGeneratingPdf} className="mt-2 w-full py-2 bg-teal-600 text-white font-semibold rounded-md hover:bg-teal-700 transition-colors disabled:bg-teal-300 disabled:cursor-not-allowed">
                   <FontAwesomeIcon icon={faFilePdf} className="mr-2" /> {isGeneratingPdf ? 'Gerando PDF...' : 'Baixar Calendário (PDF)'}
                 </button>
               </div>
@@ -1223,6 +1376,59 @@ export default function App() {
         </div>
 
         {colorPickerState.visible && <ColorPicker position={colorPickerState.position} onSelectColor={handleSelectColor} onClose={() => setColorPickerState({ visible: false })} />}
+
+        {showPdfModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-96">
+              <h3 className="text-xl font-bold mb-4 text-gray-800">Opções de Exportação</h3>
+
+              <div className="space-y-4 mb-6">
+                <label className="flex items-center space-x-3 cursor-pointer p-3 border rounded hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="pdfMode"
+                    checked={pdfMode === 'full'}
+                    onChange={() => setPdfMode('full')}
+                    className="w-5 h-5 text-teal-600"
+                  />
+                  <div>
+                    <span className="block font-semibold">Calendário Completo</span>
+                    <span className="text-xs text-gray-500">Mês por página (detalhado)</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center space-x-3 cursor-pointer p-3 border rounded hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="pdfMode"
+                    checked={pdfMode === 'compact'}
+                    onChange={() => setPdfMode('compact')}
+                    className="w-5 h-5 text-teal-600"
+                  />
+                  <div>
+                    <span className="block font-semibold">Calendário Compacto</span>
+                    <span className="text-xs text-gray-500">Ano inteiro em uma página</span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowPdfModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmPdfGeneration}
+                  className="px-4 py-2 bg-teal-600 text-white font-bold rounded hover:bg-teal-700"
+                >
+                  Gerar PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

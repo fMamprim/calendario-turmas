@@ -69,3 +69,13 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
     - Visualização amarela no grid.
     - Atualização de JSON import/export.
     - Documentação da versão 1.6.0.
+
+### 🟢 Prompt 12: PDF Compacto
+- **Usuário (Literal):** "Quero um popup na hora que eu clicar na impressão do pdf, que tenha um toggle perguntando se é pra ser calendário compacto ou cheio. Se eu mandar gerar o pdf do calendário compacto, ele tem que aparecer de janeiro á dezembro do mesmo ano em uma única página."
+- **Ações:**
+    - **Fase 5 (Início)**.
+    - Implementação de Modal de Opções de Exportação (Completo vs Compacto).
+    - Refatoração da lógica de PDF: Separação em `generateFullPdf` (html2canvas) e `generateCompactPdf` (jsPDF nativo).
+    - Implementação da lógica de renderização compacta (4x3 grid) em A4 Paisagem.
+    - Mapeamento de cores Tailwind para Hex para suporte a jsPDF.
+

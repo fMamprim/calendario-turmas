@@ -36,10 +36,10 @@ Este documento detalha o planejamento das futuras funcionalidades e melhorias do
 ## 📄 Fase 5: Exportação e Experiência de Usuário (PDF)
 **Foco:** Profissionalização da saída de dados.
 
-- [ ] **Seleção de Layout de Impressão**: Criar popup de pré-impressão com opção entre:
-    - [ ] **Calendário Cheio**: Layout detalhado atual.
-    - [ ] **Calendário Compacto**: Visualização de Janeiro a Dezembro em uma única página A4.
-- [ ] **Toggle de Formato**: Interruptor simples e moderno para escolha do layout antes de gerar o PDF.
+- [x] **Seleção de Layout de Impressão**: Criar popup de pré-impressão com opção entre:
+    - [x] **Calendário Cheio**: Layout detalhado atual.
+    - [x] **Calendário Compacto**: Visualização de Janeiro a Dezembro em uma única página A4.
+- [x] **Toggle de Formato**: Interruptor simples e moderno para escolha do layout antes de gerar o PDF.
 
 ---
 
