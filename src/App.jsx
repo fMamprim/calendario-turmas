@@ -997,15 +997,33 @@ export default function App() {
         return '#ffffff';
       };
 
+      // Logo SENAI
+      doc.addImage(senaiLogo, 'PNG', 10, 8, 25, 6.4);
+
+      // Nome da Turma (se houver)
+      if (turmaName) {
+        doc.setFontSize(14);
+        doc.setTextColor(40);
+        doc.text(turmaName, 148.5, 10, { align: 'center' });
+      }
+
       // Título
       doc.setFontSize(18);
       doc.setTextColor(40);
-      doc.text(`Calendário Escolar ${year}`, 148.5, 12, { align: 'center' });
+      doc.text(`Calendário Escolar ${year}`, 148.5, turmaName ? 18 : 12, { align: 'center' });
+
+      // Métricas do Curso
+      if (courseMetrics) {
+        doc.setFontSize(10);
+        doc.setTextColor(60);
+        const metricsY = turmaName ? 24 : 18;
+        doc.text(`${courseMetrics.days} dias • ${courseMetrics.hours}h • ${courseMetrics.classes} aulas`, 148.5, metricsY, { align: 'center' });
+      }
 
       // Legenda
       doc.setFontSize(8);
       let legendX = 20;
-      const legendY = 18;
+      const legendY = turmaName ? 32 : 26;
       const legendItems = [
         { label: 'Aula', color: colors.class },
         { label: 'Feriado', color: colors.holiday },
@@ -1023,7 +1041,7 @@ export default function App() {
 
       // Grid
       const startX = 10;
-      const startY = 28;
+      const startY = turmaName ? 40 : 34;
       const colWidth = 68;
       const rowHeight = 55;
       const cols = 4;
@@ -1103,6 +1121,11 @@ export default function App() {
               doc.setFillColor(c[2]); doc.rect(cellX, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
               doc.setFillColor(c[3]); doc.rect(cellX + cellW / 2, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
             }
+
+            // Borda fina ao redor do dia
+            doc.setDrawColor(200);
+            doc.setLineWidth(0.1);
+            doc.rect(cellX, cellY, cellW, cellH);
 
             doc.setTextColor(0);
             doc.setFontSize(7);
@@ -1335,9 +1358,15 @@ export default function App() {
     <>
       <div className="bg-gray-100 min-h-screen p-4 sm:p-6 lg:p-8 font-sans" onClick={() => setColorPickerState({ visible: false })}>
         <div className="max-w-7xl mx-auto">
-          <header className="relative text-center mb-8">
-            <img src={senaiLogo} alt="Logo SENAI" className="absolute left-0 top-0 h-10 w-auto" />
-            <h1 className="text-4xl font-extrabold text-gray-800">Calendário Escolar Interativo</h1>
+          <header className="mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
+              <div className="flex justify-center lg:justify-start">
+                <img src={senaiLogo} alt="Logo SENAI" className="h-10 w-auto" />
+              </div>
+              <div className="lg:col-span-2 flex justify-center">
+                <h1 className="text-4xl font-extrabold text-gray-800">Calendário Escolar Interativo</h1>
+              </div>
+            </div>
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

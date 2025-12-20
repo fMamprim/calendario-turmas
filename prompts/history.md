@@ -110,3 +110,40 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
     - Correção no `getDayStyle` para respeitar estritamente `dates.startDate` e `dates.endDate` para aulas genéricas.
     - Implementação de pintura automática de UCs: O grid agora verifica se o dia está dentro do range de alguma UC e aplica a cor correspondente dinamicamente.
     - Documentação da versão 1.9.2.
+
+### 🟢 Prompt 17: Métricas no Calendário
+- **Usuário (Literal):** "Esse resumo do curso eu quero que esteja em baixo do nome do mês bem pequeno. Quero que apareça também o resumo de cada UC."
+- **Ações:**
+    - Adição de métricas compactas abaixo do título do mês no calendário.
+    - Criação de `ucMetrics` useMemo para calcular métricas individuais por UC.
+    - Atualização da lista de UCs na sidebar para exibir métricas (dias, horas, aulas).
+
+### 🟢 Prompt 18: Formato HH:MM
+- **Usuário (Literal):** "No campo 'Horas de Aula por Dia' ele tem que aceitar os dados em horas (00:00), e não em números inteiros."
+- **Ações:**
+    - Criação de funções `hoursToTime` e `timeToHours` para conversão HH:MM ↔ decimal.
+    - Atualização do input global de horas por dia para `type="time"`.
+    - Atualização do input de horas por dia da UC para `type="time"`.
+    - Manutenção de armazenamento interno como decimal para cálculos.
+
+### 🟢 Prompt 19: Remover Resumo da Sidebar
+- **Usuário (Literal):** "Não quero que o resumo do curso apareça na lateral esquerda."
+- **Ações:**
+    - Remoção do componente "Resumo do Curso" da sidebar.
+    - Manutenção das métricas apenas abaixo do título do mês.
+
+### 🟢 Prompt 20: Reorganizar Header
+- **Usuário (Literal):** "Centralize o título do calendário 'Calendário Escolar Interativo' na div dele (div da direita) e o logo do senai na div dele (div da esquerda)"
+- **Ações:**
+    - Reorganização do header em grid com 3 colunas.
+    - Logo SENAI: 1/3 à esquerda.
+    - Título: 2/3 centralizado à direita.
+
+### 🟢 Prompt 21: Melhorias PDF Compacto
+- **Usuário (Literal):** "Você adiciona o logo do senai, titulo e outras coisas nas páginas quando é o calendário completo. Quero que no calendário compacto também tenha essas coisas. O calendário compacto eu quero que os dias tenham uma borda bem fina em cada dia só pra visualizar a separação delas"
+- **Ações:**
+    - Adição de header completo no PDF Compacto (logo, turma, título, métricas, legenda).
+    - Implementação de bordas finas (0.1mm, cinza) ao redor de cada dia.
+    - Ajuste dinâmico de layout baseado na presença do nome da turma.
+    - Documentação da versão 1.10.0.
+
