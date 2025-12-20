@@ -997,6 +997,9 @@ export default function App() {
         return '#ffffff';
       };
 
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = doc.internal.pageSize.getHeight();
+
       // Logo SENAI
       doc.addImage(senaiLogo, 'PNG', 10, 8, 25, 6.4);
 
@@ -1007,8 +1010,8 @@ export default function App() {
         doc.text(turmaName, 148.5, 10, { align: 'center' });
       }
 
-      // Título
-      doc.setFontSize(18);
+      // Título (em negrito)
+      doc.setFontSize(18).setFont(undefined, 'bold');
       doc.setTextColor(40);
       doc.text(`Calendário Escolar ${year}`, 148.5, turmaName ? 18 : 12, { align: 'center' });
 
@@ -1020,28 +1023,35 @@ export default function App() {
         doc.text(`${courseMetrics.days} dias • ${courseMetrics.hours}h • ${courseMetrics.classes} aulas`, 148.5, metricsY, { align: 'center' });
       }
 
-      // Legenda
+      // Legenda (incluindo UCs)
       doc.setFontSize(8);
-      let legendX = 20;
-      const legendY = turmaName ? 32 : 26;
+      let legendX = 10;
+      const legendY = turmaName ? 30 : 24;
       const legendItems = [
         { label: 'Aula', color: colors.class },
+        ...dates.curricularUnits.map(uc => ({ label: uc.name, color: uc.color })),
         { label: 'Feriado', color: colors.holiday },
         { label: 'Recesso', color: colors.recess },
         { label: 'Férias', color: colors.vacation },
         { label: 'Reposição', color: colors.makeup },
         { label: 'Emenda', color: colors.emenda }
       ];
-      legendItems.forEach(item => {
+
+      let currentLegendY = legendY;
+      legendItems.forEach((item, index) => {
+        if (legendX + 30 > 287) { // Quebra de linha se não couber
+          legendX = 10;
+          currentLegendY += 5;
+        }
         doc.setFillColor(getHex(item.color));
-        doc.rect(legendX, legendY, 4, 4, 'F');
-        doc.text(item.label, legendX + 5, legendY + 3);
-        legendX += 25;
+        doc.rect(legendX, currentLegendY, 4, 4, 'F');
+        doc.text(item.label, legendX + 5, currentLegendY + 3);
+        legendX += 30;
       });
 
-      // Grid
+      // Grid (com mais espaço da legenda)
       const startX = 10;
-      const startY = turmaName ? 40 : 34;
+      const startY = currentLegendY + 10; // Mais espaço
       const colWidth = 68;
       const rowHeight = 55;
       const cols = 4;
@@ -1135,6 +1145,115 @@ export default function App() {
           }
           if (d > daysInMonth) break;
         }
+      }
+
+      doc.save(`Calendario_Compacto_${year}.pdf`);
+
+      // === PÁGINA DE RESUMO (igual ao PDF Completo) ===
+      doc.addPage();
+      doc.addImage(senaiLogo, 'PNG', pdfWidth - 35, 8, 25, 6.4);
+
+      // Resumo do Curso
+      doc.setFontSize(16).setFont(undefined, 'bold');
+      doc.text('Resumo do Curso', 14, 20);
+
+      doc.setFontSize(12).setFont(undefined, 'normal');
+      let summaryY = 30;
+      if (courseMetrics) {
+        doc.text(`Dias Letivos: ${courseMetrics.days}`, 14, summaryY);
+        doc.text(`Carga Horária Total: ${courseMetrics.hours}h`, 80, summaryY);
+        doc.text(`Total de Aulas: ${courseMetrics.classes}`, 150, summaryY);
+        summaryY += 10;
+      }
+
+      // Linha separadora
+      doc.setDrawColor(200);
+      doc.line(14, summaryY, pdfWidth - 14, summaryY);
+      summaryY += 10;
+
+      // Métricas por UC
+      if (ucMetrics && ucMetrics.length > 0) {
+        doc.setFontSize(14).setFont(undefined, 'bold');
+        doc.text('Métricas por Unidade Curricular', 14, summaryY);
+        summaryY += 8;
+
+        doc.setFontSize(10).setFont(undefined, 'normal');
+        ucMetrics.forEach(uc => {
+          if (summaryY > pdfHeight - 20) {
+            doc.addPage();
+            doc.addImage(senaiLogo, 'PNG', pdfWidth - 35, 8, 25, 6.4);
+            summaryY = 20;
+          }
+          if (uc.metrics) {
+            doc.setFont(undefined, 'bold');
+            doc.text(`${uc.name}:`, 20, summaryY);
+            doc.setFont(undefined, 'normal');
+            doc.text(`${uc.metrics.days} dias, ${uc.metrics.hours}h, ${uc.metrics.classes} aulas`, 80, summaryY);
+            summaryY += 6;
+          }
+        });
+        summaryY += 5;
+
+        // Linha separadora
+        doc.setDrawColor(200);
+        doc.line(14, summaryY, pdfWidth - 14, summaryY);
+        summaryY += 10;
+      }
+
+      // Datas Importantes
+      doc.setFontSize(16).setFont(undefined, 'bold');
+      doc.text('Datas Importantes', 14, summaryY);
+      let currentY = summaryY + 10;
+
+      const renderListToPdf = (title, dateSet, namesMap = null) => {
+        if (dateSet.size === 0) return;
+        doc.setFontSize(12).setFont(undefined, 'bold');
+        doc.text(title, 14, currentY);
+        currentY += 6;
+        doc.setFontSize(10).setFont(undefined, 'normal');
+        [...dateSet].sort().forEach(date => {
+          if (currentY > pdfHeight - 20) {
+            doc.addPage();
+            doc.addImage(senaiLogo, 'PNG', pdfWidth - 35, 8, 25, 6.4);
+            currentY = 20;
+          }
+          let name = '';
+          if (namesMap && namesMap.has(date)) {
+            const val = namesMap.get(date);
+            const uc = dates.curricularUnits.find(u => String(u.id) === String(val));
+            name = uc ? uc.name : val;
+          }
+          const displayText = `${new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}${name ? ' - ' + name : ''}`;
+          doc.text(displayText, 20, currentY);
+          currentY += 5;
+        });
+        currentY += 3;
+      };
+
+      if (dates.startDate) {
+        renderListToPdf('Início do Curso:', new Set([dates.startDate]));
+      }
+      if (dates.endDate) {
+        renderListToPdf('Término do Curso:', new Set([dates.endDate]));
+      }
+      renderListToPdf('Feriados:', dates.holidays, holidayNames);
+      renderListToPdf('Emendas de Feriado:', dates.emendas);
+      renderListToPdf('Reposição de Aulas:', dates.makeupDays, makeupNames);
+
+      // Férias e Licenças
+      if (vacationPeriods.length > 0) {
+        if (currentY > pdfHeight - 25) { doc.addPage(); doc.addImage(senaiLogo, 'PNG', pdfWidth - 35, 8, 25, 6.4); currentY = 20; }
+        doc.setFontSize(12).setFont(undefined, 'bold');
+        doc.text('Férias e Licenças:', 14, currentY);
+        currentY += 7;
+        doc.setFontSize(10).setFont(undefined, 'normal');
+        vacationPeriods.forEach(period => {
+          if (currentY > pdfHeight - 15) { doc.addPage(); doc.addImage(senaiLogo, 'PNG', pdfWidth - 35, 8, 25, 6.4); currentY = 20; }
+          const startDate = new Date(period.start + 'T12:00:00').toLocaleDateString('pt-BR');
+          const endDate = new Date(period.end + 'T12:00:00').toLocaleDateString('pt-BR');
+          doc.text(`${period.name || 'Férias'}: ${startDate} até ${endDate}`, 20, currentY);
+          currentY += 5;
+        });
       }
 
       doc.save(`Calendario_Compacto_${year}.pdf`);
@@ -1272,6 +1391,35 @@ export default function App() {
       pdfDoc.line(14, summaryY, pdfWidth - 14, summaryY);
       summaryY += 10;
 
+      // --- Métricas por UC ---
+      if (ucMetrics && ucMetrics.length > 0) {
+        pdfDoc.setFontSize(14).setFont(undefined, 'bold');
+        pdfDoc.text('Métricas por Unidade Curricular', 14, summaryY);
+        summaryY += 8;
+
+        pdfDoc.setFontSize(10).setFont(undefined, 'normal');
+        ucMetrics.forEach(uc => {
+          if (summaryY > pdfHeight - 20) {
+            pdfDoc.addPage();
+            pdfDoc.addImage(senaiLogo, 'PNG', pdfWidth - 35, 8, 25, 6.4);
+            summaryY = 20;
+          }
+          if (uc.metrics) {
+            pdfDoc.setFont(undefined, 'bold');
+            pdfDoc.text(`${uc.name}:`, 20, summaryY);
+            pdfDoc.setFont(undefined, 'normal');
+            pdfDoc.text(`${uc.metrics.days} dias, ${uc.metrics.hours}h, ${uc.metrics.classes} aulas`, 80, summaryY);
+            summaryY += 6;
+          }
+        });
+        summaryY += 5;
+
+        // Line separator
+        pdfDoc.setDrawColor(200);
+        pdfDoc.line(14, summaryY, pdfWidth - 14, summaryY);
+        summaryY += 10;
+      }
+
       // --- Datas Importantes ---
       pdfDoc.setFontSize(16).setFont(undefined, 'bold');
       pdfDoc.text('Datas Importantes', 14, summaryY);
@@ -1314,6 +1462,22 @@ export default function App() {
       renderListToPdf('Feriados:', dates.holidays, holidayNames);
       renderListToPdf('Emendas de Feriado:', dates.emendas);
       renderListToPdf('Reposição de Aulas:', dates.makeupDays, makeupNames);
+
+      // Férias e Licenças
+      if (vacationPeriods.length > 0) {
+        if (currentY > pdfHeight - 25) { pdfDoc.addPage(); currentY = 20; }
+        pdfDoc.setFontSize(12).setFont(undefined, 'bold');
+        pdfDoc.text('Férias e Licenças:', 14, currentY);
+        currentY += 7;
+        pdfDoc.setFontSize(10).setFont(undefined, 'normal');
+        vacationPeriods.forEach(period => {
+          if (currentY > pdfHeight - 15) { pdfDoc.addPage(); currentY = 20; }
+          const startDate = new Date(period.start + 'T12:00:00').toLocaleDateString('pt-BR');
+          const endDate = new Date(period.end + 'T12:00:00').toLocaleDateString('pt-BR');
+          pdfDoc.text(`${period.name || 'Férias'}: ${startDate} até ${endDate}`, 20, currentY);
+          currentY += 5;
+        });
+      }
 
       // 4. Salva o PDF
       pdfDoc.save(`${turmaName.replace(/ /g, '_') || 'calendario'}.pdf`);
