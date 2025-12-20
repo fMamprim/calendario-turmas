@@ -1342,25 +1342,6 @@ export default function App() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 space-y-6">
-              {courseMetrics && (
-                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
-                  <h3 className="font-bold text-gray-700 text-lg mb-2">Resumo do Curso</h3>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-blue-50 p-2 rounded">
-                      <div className="text-2xl font-bold text-blue-600">{courseMetrics.days}</div>
-                      <div className="text-xs text-gray-500 font-semibold">Dias</div>
-                    </div>
-                    <div className="bg-blue-50 p-2 rounded">
-                      <div className="text-2xl font-bold text-blue-600">{courseMetrics.hours}</div>
-                      <div className="text-xs text-gray-500 font-semibold">Horas</div>
-                    </div>
-                    <div className="bg-blue-50 p-2 rounded">
-                      <div className="text-2xl font-bold text-blue-600">{courseMetrics.classes}</div>
-                      <div className="text-xs text-gray-500 font-semibold">Aulas</div>
-                    </div>
-                  </div>
-                </div>
-              )}
               <CalendarControls
                 turmaName={turmaName}
                 onTurmaNameChange={(e) => setTurmaName(e.target.value)}
