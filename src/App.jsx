@@ -980,20 +980,31 @@ export default function App() {
       const year = currentDate.getFullYear();
 
       const TAILWIND_COLORS = {
-        'bg-blue-200': '#bfdbfe', 'bg-blue-500': '#3b82f6',
+        'bg-blue-200': '#bfdbfe', 'bg-blue-300': '#93c5fd', 'bg-blue-500': '#3b82f6',
         'bg-red-300': '#fca5a5', 'bg-red-500': '#ef4444',
         'bg-green-300': '#86efac', 'bg-green-500': '#22c55e',
-        'bg-purple-200': '#e9d5ff', 'bg-purple-500': '#a855f7',
-        'bg-orange-200': '#fed7aa', 'bg-orange-500': '#f97316',
-        'bg-yellow-200': '#fef08a', 'bg-yellow-500': '#eab308',
-        'bg-gray-200': '#e5e7eb', 'bg-gray-500': '#6b7280',
-        'bg-teal-600': '#0d9488',
-        'bg-indigo-200': '#c7d2fe', 'bg-pink-200': '#fbcfe8',
+        'bg-purple-200': '#e9d5ff', 'bg-purple-300': '#d8b4fe', 'bg-purple-500': '#a855f7',
+        'bg-orange-200': '#fed7aa', 'bg-orange-300': '#fdba74', 'bg-orange-500': '#f97316',
+        'bg-yellow-200': '#fef08a', 'bg-yellow-300': '#fde047', 'bg-yellow-500': '#eab308',
+        'bg-gray-200': '#e5e7eb', 'bg-gray-500': '#6b7280', 'bg-gray-50': '#f9fafb',
+        'bg-teal-300': '#5eead4', 'bg-teal-400': '#2dd4bf', 'bg-teal-600': '#0d9488',
+        'bg-indigo-200': '#c7d2fe', 'bg-indigo-300': '#a5b4fc',
+        'bg-pink-200': '#fbcfe8', 'bg-pink-300': '#f9a8d4',
+        'bg-cyan-300': '#67e8f9', 'bg-cyan-400': '#22d3ee',
+        'bg-lime-300': '#bef264', 'bg-lime-400': '#a3e635',
+        'bg-fuchsia-300': '#f0abfc', 'bg-fuchsia-400': '#e879f9',
+        'bg-rose-300': '#fda4af', 'bg-rose-400': '#fb7185',
+        'bg-sky-300': '#7dd3fc', 'bg-sky-400': '#38bdf8',
+        'bg-amber-300': '#fcd34d', 'bg-amber-400': '#fbbf24',
+        'bg-violet-300': '#c4b5fd', 'bg-violet-400': '#a78bfa',
         'bg-white': '#ffffff'
       };
 
       const getHex = (className) => {
         if (!className) return '#ffffff';
+        // Tenta encontrar cor direta no mapa
+        if (TAILWIND_COLORS[className]) return TAILWIND_COLORS[className];
+
         const bgMatch = className.match(/bg-[a-z]+-[0-9]+/);
         if (bgMatch) return TAILWIND_COLORS[bgMatch[0]] || '#ffffff';
         return '#ffffff';
@@ -1089,12 +1100,14 @@ export default function App() {
 
                 if (activeUCs.length > 0) {
                   colorsToDraw = activeUCs.map(uc => getHex(uc.color));
-                  // Se tiver UCs, define singleHex como vazio para não sobrescrever, ou trata fluxo diferenciado
-                  // O fluxo abaixo espera colorsToDraw preenchido ou singleHex
                 } else {
-                  // 3. Fallback: Dia de Aula Genérico
-                  if (classWeekDays.includes(dayOfWeek)) singleHex = getHex(colors.class);
-                  else if (dayOfWeek === 0 || dayOfWeek === 6) singleHex = getHex(colors.weekend);
+                  // 3. Fallback: Dia de Aula Genérico (Respeitando limites do curso)
+                  const inCourseRange = dates.startDate && dateStr >= dates.startDate && (!dates.endDate || dateStr <= dates.endDate);
+
+                  if (inCourseRange) {
+                    if (classWeekDays.includes(dayOfWeek)) singleHex = getHex(colors.class);
+                    else if (dayOfWeek === 0 || dayOfWeek === 6) singleHex = getHex(colors.weekend);
+                  }
                 }
               }
 

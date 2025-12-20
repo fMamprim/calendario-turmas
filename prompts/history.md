@@ -207,5 +207,12 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
     - Correção de erro de variáveis duplicadas (`cols`, `cellW`, `cellH`) após a inserção da lógica.
     - Documentação da versão 1.11.1.
 
+### 🟢 Prompt 30: Correção de Cores e Intervalos no PDF Compacto
+- **Usuário (Literal):** "No calendário compacto, quando eu troco a cor da legenda, a cor não aparece nele. Quando eu defino uma data de duração em um único mês, todos os meses ficam com cor."
+- **Ações:**
+    - Expansão do mapa `TAILWIND_COLORS` no gerador de PDF para incluir todas as cores da paleta.
+    - Adição de verificação `inCourseRange` para impedir que dias genéricos sejam pintados fora das datas de início/fim do curso.
+    - Documentação da versão 1.11.2.
+
 
 

@@ -7,6 +7,11 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação de sistema de rastreabilidade via `prompts/history.md`.
 - Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
 
+## [1.11.2] - 2025-12-19
+### Corrigido
+- Legendas com cores personalizadas aparecendo em branco no PDF Compacto.
+- Calendário do PDF Compacto pintando dias fora do período do curso.
+
 ## [1.11.1] - 2025-12-19
 ### Corrigido
 - Renderização de cores e aulas de UCs no PDF Compacto.
@@ -95,56 +100,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
     - Remoção do componente "Resumo do Curso" da sidebar.
     - Manutenção das métricas apenas abaixo do título do mês.
 
-### 🟢 Prompt 20: Reorganizar Header
-- **Usuário (Literal):** "Centralize o título do calendário 'Calendário Escolar Interativo' na div dele (div da direita) e o logo do senai na div dele (div da esquerda)"
-- **Ações:**
-    - Reorganização do header em grid com 3 colunas.
-    - Logo SENAI: 1/3 à esquerda.
-    - Título: 2/3 centralizado à direita.
 
-### 🟢 Prompt 21: Melhorias PDF Compacto
-- **Usuário (Literal):** "Você adiciona o logo do senai, titulo e outras coisas nas páginas quando é o calendário completo. Quero que no calendário compacto também tenha essas coisas. O calendário compacto eu quero que os dias tenham uma borda bem fina em cada dia só pra visualizar a separação delas"
-- **Ações:**
-    - Adição de header completo no PDF Compacto (logo, turma, título, métricas, legenda).
-    - Implementação de bordas finas (0.1mm, cinza) ao redor de cada dia.
-    - Ajuste dinâmico de layout baseado na presença do nome da turma.
-    - Documentação da versão 1.10.0.
-
-### 🟢 Prompt 22: Correção do Fluxo de Férias
-- **Usuário (Literal):** "As férias não apareceram no calendário quando eu inseri. As férias não aparecem lá em baixo para eu poder editar ou remover."
-- **Ações:**
-    - Identificado que `onAddVacationPeriod` estava faltando nas props de `CalendarControls`.
-    - Correção da passagem da função no `App.jsx`.
-    - Adição de `vacationDays` às dependências do `getDayStyle` para garantir re-renderização imediata.
-
-### 🟢 Prompt 23: Correção de Renderização do PDF
-- **Usuário (Literal):** "No pdf da impressão do calendário completo, não está aparecendo o calendário. Em anexo está um print do resultado que foi gerado."
-- **Ações:**
-    - Ajuste no cálculo de altura e largura da imagem capturada no `generateFullPdf`.
-    - Correção do posicionamento da legenda e do grid na página do PDF.
-    - Documentação da versão 1.10.1.
-
-### 🟢 Prompt 24: Refatoração do PDF Compacto
-- **Usuário (Literal):** "Está vendo o resultado do calendário compacto neste print? Em comparação com o calendário completo está faltando no calendário compacto: Logo do senai, Nome da turma, Mesmo padrão de fontes e negritos do calendário completo, Página de resumo do curso igual a do calendário completo, As unidades curriculares não estão aparecendo no pdf compacto. Erros: Legenda está muito grudada com o calendário, Os dias, horas e aulas tem que aparecer na página de resumo."
-- **Ações:**
-    - Refatoração completa do `generateCompactPdf`.
-    - Adição de UCs na legenda e ajuste de espaçamento.
-    - Implementação de página de resumo idêntica à do PDF Completo.
-    - Inclusão de métricas detalhadas (dias, horas, aulas) por UC no resumo.
-    - Adição de períodos de férias na seção de datas importantes do PDF.
-
-### 🟢 Prompt 25: Correção de Sobrescrita no Import
-- **Usuário (Literal):** "Quando eu carrego um json, ele não sobrescreve os dados escritos nas configurações gerais"
-- **Ações:**
-    - Identificado que inputs de data no `CalendarControls` não eram controlados (faltava `value`).
-    - Adição de `startDate` e `endDate` como props em `CalendarControls`.
-    - Refatoração de `handleImportJson` para resetar estados caso campos estejam ausentes no JSON.
-    - Documentação da versão 1.10.2.
-
-
-
-
-- Lógica de Toggle (Adicionar/Remover) na seleção de cores manuais.
 
 ## [1.8.0] - 2025-12-19
 ### Adicionado
