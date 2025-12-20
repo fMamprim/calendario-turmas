@@ -79,3 +79,34 @@ Este arquivo registra cronologicamente todos os comandos enviados pelo usuário 
     - Implementação da lógica de renderização compacta (4x3 grid) em A4 Paisagem.
     - Mapeamento de cores Tailwind para Hex para suporte a jsPDF.
 
+### 🟢 Prompt 13: Horas por Dia por UC
+- **Usuário:** "Faça com que no calculo de horas da UC ele permita eu adicionar quantas horas por dia da UC será utilizada."
+- **Ações:**
+    - Atualização do formulário de UC (`CurricularUnitControls`) para incluir input opcional de "Horas/Dia".
+    - Ajuste no `useEffect` para usar a carga horária específica se definida.
+    - Correção crítica: Passagem de `recesses` e `vacations` para a função `calculateEndDate`, garantindo precisão total no cálculo.
+    - Documentação da versão 1.8.0.
+
+
+
+### 🟢 Prompt 14: Multi-UCs por Dia
+- **Usuário (Literal):** "Faça a funcionalidade de eu poder adicionar mais de uma UC no mesmo dia, fazendo com que ele divida o quadrado do dia no meio e coloque as 2 cores das duas matérias. Faça ele dividir até 4 matérias para o mesmo dia."
+- **Ações:**
+    - Atualização da lógica de seleção de cores (`handleSelectColor`) para permitir array de cores (Toggle/Append).
+    - Atualização do `CalendarGrid` para renderizar células divididas (Grid CSS).
+    - Atualização do gerador de PDF Compacto para desenhar retângulos fracionados.
+    - Documentação da versão 1.9.0.
+
+### 🟢 Prompt 15: Métricas no PDF
+- **Usuário (Literal):** "Os dados de quantidades de horas, carga horaria etc também deverá ser mostrado na impressão na página final."
+- **Ações:**
+    - Atualização da função `generateFullPdf` para incluir seção "Resumo do Curso" com `courseMetrics` (Dias, Horas, Aulas) antes da lista de datas.
+    - Documentação da versão 1.9.1.
+
+
+### 🟢 Prompt 16: Correção de Datas
+- **Usuário (Literal):** "Quando eu implemento as datas do curso, ele pinta o calendário nas datas certas porém ele também pinta as datas antes e depois. E quando eu atribuo uma nova UC ele não está pintando o calendário."
+- **Ações:**
+    - Correção no `getDayStyle` para respeitar estritamente `dates.startDate` e `dates.endDate` para aulas genéricas.
+    - Implementação de pintura automática de UCs: O grid agora verifica se o dia está dentro do range de alguma UC e aplica a cor correspondente dinamicamente.
+    - Documentação da versão 1.9.2.

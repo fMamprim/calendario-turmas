@@ -26,6 +26,20 @@ const DEFAULT_COLORS = {
   weekend: 'bg-gray-200',
 };
 
+// Funções de conversão HH:MM ↔ decimal
+const hoursToTime = (hours) => {
+  if (!hours || isNaN(hours)) return '04:00';
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+const timeToHours = (time) => {
+  if (!time) return 4;
+  const [h, m] = time.split(':').map(Number);
+  return h + (m / 60);
+};
+
 
 
 const COLOR_PALETTE = [
@@ -205,7 +219,14 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
           </div>
           <div>
             <label htmlFor="hoursPerDay" className="block text-sm font-medium text-gray-600 mb-1">Horas de Aula por Dia</label>
-            <input type="number" id="hoursPerDay" name="hoursPerDay" value={hoursPerDay} onChange={onHoursPerDayChange} placeholder="Ex: 4" min="1" max="8" step="0.5" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" />
+            <input
+              type="time"
+              id="hoursPerDay"
+              name="hoursPerDay"
+              value={hoursToTime(hoursPerDay)}
+              onChange={onHoursPerDayChange}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
         </div>
         <div className="flex items-center justify-between p-3 bg-white rounded-md border border-gray-300">
@@ -310,8 +331,8 @@ const CalendarControls = ({ turmaName, onTurmaNameChange, onDatesChange, onAddHo
   );
 };
 
-const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancelEdit, generalWeekDays, holidays, emendas, makeupDays, hoursPerDay }) => {
-  const initialFormState = { name: '', startDate: '', endDate: '', weekDays: [], hours: '', autoCalculate: false };
+const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancelEdit, generalWeekDays, holidays, emendas, makeupDays, hoursPerDay, recesses, vacations }) => {
+  const initialFormState = { name: '', startDate: '', endDate: '', weekDays: [], hours: '', dailyHours: '', autoCalculate: false };
   const [unit, setUnit] = useState(initialFormState);
   const isEditing = !!editingUnit;
 
@@ -325,13 +346,13 @@ const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancel
 
   useEffect(() => {
     if (unit.autoCalculate && unit.startDate && unit.hours && unit.hours > 0 && unit.weekDays.length > 0) {
-      // Assume global hoursPerDay for UC calculation for now, unless UC has specific hours/day (not requested yet)
-      const newEndDate = calculateEndDate(unit.startDate, unit.hours, hoursPerDay, unit.weekDays, holidays, emendas, makeupDays);
+      const effectiveHoursPerDay = unit.dailyHours && Number(unit.dailyHours) > 0 ? Number(unit.dailyHours) : hoursPerDay;
+      const newEndDate = calculateEndDate(unit.startDate, unit.hours, effectiveHoursPerDay, unit.weekDays, holidays, emendas, makeupDays, recesses, vacations);
       if (newEndDate && newEndDate !== unit.endDate) {
         setUnit(prev => ({ ...prev, endDate: newEndDate }));
       }
     }
-  }, [unit.autoCalculate, unit.startDate, unit.hours, unit.weekDays, hoursPerDay, holidays, emendas, makeupDays]);
+  }, [unit.autoCalculate, unit.startDate, unit.hours, unit.weekDays, unit.dailyHours, hoursPerDay, holidays, emendas, makeupDays, recesses, vacations]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -385,9 +406,25 @@ const CurricularUnitControls = ({ onAddUnit, onUpdateUnit, editingUnit, onCancel
           </div>
 
           {unit.autoCalculate && (
-            <div className="col-span-2 mb-2">
-              <label htmlFor="ucHours" className="block text-xs font-medium text-gray-500 mb-1">Carga Horária da UC (h)</label>
-              <input type="number" name="hours" value={unit.hours} onChange={handleInputChange} placeholder="Ex: 40" className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+            <div className="col-span-2 grid grid-cols-2 gap-2 mb-2">
+              <div>
+                <label htmlFor="ucHours" className="block text-xs font-medium text-gray-500 mb-1">Carga Horária (h)</label>
+                <input type="number" name="hours" value={unit.hours} onChange={handleInputChange} placeholder="Ex: 40" className="w-full p-2 border border-gray-300 rounded-md text-sm" />
+              </div>
+              <div>
+                <label htmlFor="ucDailyHours" className="block text-xs font-medium text-gray-500 mb-1">Horas/Dia (Opcional)</label>
+                <input
+                  type="time"
+                  name="dailyHours"
+                  value={unit.dailyHours ? hoursToTime(unit.dailyHours) : ''}
+                  onChange={(e) => {
+                    const hours = e.target.value ? timeToHours(e.target.value) : '';
+                    handleInputChange({ target: { name: 'dailyHours', value: hours } });
+                  }}
+                  placeholder={`Padrão: ${hoursToTime(hoursPerDay)}`}
+                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -456,15 +493,28 @@ const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWe
     if (dates.emendas.has(dateStr)) return { type: 'emenda', className: colors.emenda };
     if (dates.makeupDays.has(dateStr)) return { type: 'makeup', className: colors.makeup };
 
-    // Verifica se é feriado/emenda/recesso antes de dia de aula
-    if (classWeekDays.includes(dayOfWeek) && !dates.holidays.has(dateStr) && !dates.emendas.has(dateStr) && !dates.recesses.has(dateStr)) {
+    // UCs Automáticas (Prioridade sobre genérico)
+    const activeUCs = dates.curricularUnits.filter(uc =>
+      uc.startDate && uc.endDate &&
+      dateStr >= uc.startDate && dateStr <= uc.endDate &&
+      uc.weekDays.includes(dayOfWeek)
+    );
+    if (activeUCs.length > 0) {
+      const ucColors = activeUCs.map(uc => uc.color);
+      return { type: 'curricular', className: ucColors.length === 1 ? ucColors[0] : ucColors };
+    }
+
+    // Dia de Aula Genérico (Respeitando limites do curso)
+    const inCourseRange = dates.startDate && dateStr >= dates.startDate && (!dates.endDate || dateStr <= dates.endDate);
+    if (inCourseRange && classWeekDays.includes(dayOfWeek)) {
       return { type: 'class', className: colors.class };
     }
+
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       return { type: 'weekend', className: `${colors.weekend} text-gray-500` };
     }
     return { type: 'default', className: 'bg-white text-gray-700' };
-  }, [year, month, dates, colors, individualDayColors, classWeekDays]);
+  }, [year, month, dates, colors, individualDayColors, classWeekDays, vacationDays]);
 
 
   return (
@@ -495,9 +545,30 @@ const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWe
             title = `${vacationNames.get(dateStr) || 'Férias / Licença'}`;
           }
 
+          const styles = getDayStyle(day);
+          const classes = Array.isArray(styles.className) ? styles.className : [styles.className];
+          const isMulti = classes.length > 1;
+
           return (
-            <div key={day} onClick={(e) => { if ('individual' !== 'individual') onDayClick(e, 'individual', dateStr) }} title={title} className={`h-16 md:h-20 flex items-center justify-center border rounded-md transition-all duration-200 cursor-pointer hover:shadow-md ${className} ${isToday ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}>
-              <span className="text-lg font-medium">{dayIndex + 1}</span>
+            <div
+              key={day}
+              onClick={(e) => onDayClick(e, 'individual', dateStr)}
+              title={title}
+              className={`relative h-16 md:h-20 border rounded-md transition-all duration-200 cursor-pointer hover:shadow-md ${!isMulti ? classes[0] : 'bg-gray-50'} ${isToday ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
+            >
+              {isMulti && (
+                <div className="absolute inset-0 w-full h-full grid grid-cols-2 grid-rows-2 rounded-md overflow-hidden">
+                  {classes.map((c, i) => (
+                    <div
+                      key={i}
+                      className={`${c} ${classes.length === 2 ? 'row-span-2' : ''} ${classes.length === 3 && i === 0 ? 'col-span-2' : ''}`}
+                    />
+                  ))}
+                </div>
+              )}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className="text-lg font-medium relative z-10">{dayIndex + 1}</span>
+              </div>
             </div>
           );
         })}
@@ -581,15 +652,28 @@ export default function App() {
     return calculateMetrics(days.length, hoursPerDay);
   }, [dates.startDate, dates.endDate, classWeekDays, dates.holidays, dates.emendas, dates.makeupDays, dates.recesses, vacationDays, hoursPerDay]);
 
+  const ucMetrics = useMemo(() => {
+    return dates.curricularUnits.map(uc => {
+      if (!uc.startDate || !uc.endDate) return { ...uc, metrics: null };
+      const ucHoursPerDay = uc.dailyHours && Number(uc.dailyHours) > 0 ? Number(uc.dailyHours) : hoursPerDay;
+      const days = getEffectiveDays(uc.startDate, uc.endDate, uc.weekDays, dates.holidays, dates.emendas, dates.makeupDays, dates.recesses, vacationDays);
+      return { ...uc, metrics: calculateMetrics(days.length, ucHoursPerDay) };
+    });
+  }, [dates.curricularUnits, dates.holidays, dates.emendas, dates.makeupDays, dates.recesses, vacationDays, hoursPerDay]);
+
   const handleCourseHoursChange = (e) => {
     setCourseHours(e.target.value);
   };
 
   const handleHoursPerDayChange = (e) => {
-    let value = parseFloat(e.target.value);
-    if (value > 8) value = 8;
-    if (value < 0) value = 0; // Prevent negative values just in case
-    setHoursPerDay(value);
+    const hours = timeToHours(e.target.value);
+    if (hours > 8) {
+      setHoursPerDay(8);
+    } else if (hours < 0) {
+      setHoursPerDay(0);
+    } else {
+      setHoursPerDay(hours);
+    }
   };
 
   const handleAutoCalculateEndChange = () => {
@@ -746,7 +830,30 @@ export default function App() {
     if (type === 'global') {
       setColors(prev => ({ ...prev, [identifier]: colorClass }));
     } else if (type === 'individual') {
-      setIndividualDayColors(prev => ({ ...prev, [identifier]: colorClass }));
+      setIndividualDayColors(prev => {
+        const current = prev[identifier];
+        let newColors = [];
+
+        if (Array.isArray(current)) newColors = [...current];
+        else if (current) newColors = [current];
+
+        if (newColors.includes(colorClass)) {
+          // Remove (Toggle)
+          newColors = newColors.filter(c => c !== colorClass);
+        } else {
+          // Add (Limit 4)
+          if (newColors.length < 4) newColors.push(colorClass);
+          else alert("Máximo de 4 matérias por dia.");
+        }
+
+        const copy = { ...prev };
+        if (newColors.length === 0) {
+          delete copy[identifier];
+        } else {
+          copy[identifier] = newColors.length === 1 ? newColors[0] : newColors;
+        }
+        return copy;
+      });
     } else if (type === 'curricular') {
       setDates(prev => ({
         ...prev,
@@ -953,31 +1060,49 @@ export default function App() {
             const dateStr = formatDateToISO(new Date(year, m, d));
             const dayOfWeek = wd;
 
-            let hex = '#ffffff';
+            let colorsToDraw = [];
 
             if (individualDayColors[dateStr]) {
-              hex = getHex(individualDayColors[dateStr]);
-            } else if (dates.holidays.has(dateStr)) {
-              hex = getHex(colors.holiday);
-            } else if (dates.recesses.has(dateStr)) {
-              hex = getHex(colors.recess);
-            } else if (vacationDays.has(dateStr)) {
-              hex = getHex(colors.vacation);
-            } else if (dates.emendas.has(dateStr)) {
-              hex = getHex(colors.emenda);
-            } else if (dates.makeupDays.has(dateStr)) {
-              hex = getHex(colors.makeup);
-            } else if (classWeekDays.includes(dayOfWeek)) {
-              hex = getHex(colors.class);
-            } else if (dayOfWeek === 0 || dayOfWeek === 6) {
-              hex = getHex(colors.weekend);
+              const c = individualDayColors[dateStr];
+              if (Array.isArray(c)) colorsToDraw = c.map(cl => getHex(cl));
+              else colorsToDraw = [getHex(c)];
+            } else {
+              let singleHex = '#ffffff';
+              if (dates.holidays.has(dateStr)) singleHex = getHex(colors.holiday);
+              else if (dates.recesses.has(dateStr)) singleHex = getHex(colors.recess);
+              else if (vacationDays.has(dateStr)) singleHex = getHex(colors.vacation);
+              else if (dates.emendas.has(dateStr)) singleHex = getHex(colors.emenda);
+              else if (dates.makeupDays.has(dateStr)) singleHex = getHex(colors.makeup);
+              else if (classWeekDays.includes(dayOfWeek)) singleHex = getHex(colors.class);
+              else if (dayOfWeek === 0 || dayOfWeek === 6) singleHex = getHex(colors.weekend);
+              colorsToDraw = [singleHex];
             }
 
             const cellX = curX + (wd * cellW);
             const cellY = curY + 3 + (w * cellH);
 
-            doc.setFillColor(hex);
-            doc.rect(cellX, cellY, cellW, cellH, 'F');
+            if (colorsToDraw.length === 1) {
+              doc.setFillColor(colorsToDraw[0]);
+              doc.rect(cellX, cellY, cellW, cellH, 'F');
+            } else if (colorsToDraw.length === 2) {
+              doc.setFillColor(colorsToDraw[0]);
+              doc.rect(cellX, cellY, cellW / 2, cellH, 'F');
+              doc.setFillColor(colorsToDraw[1]);
+              doc.rect(cellX + cellW / 2, cellY, cellW / 2, cellH, 'F');
+            } else if (colorsToDraw.length === 3) {
+              doc.setFillColor(colorsToDraw[0]);
+              doc.rect(cellX, cellY, cellW, cellH / 2, 'F');
+              doc.setFillColor(colorsToDraw[1]);
+              doc.rect(cellX, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
+              doc.setFillColor(colorsToDraw[2]);
+              doc.rect(cellX + cellW / 2, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
+            } else if (colorsToDraw.length >= 4) {
+              const c = colorsToDraw;
+              doc.setFillColor(c[0]); doc.rect(cellX, cellY, cellW / 2, cellH / 2, 'F');
+              doc.setFillColor(c[1]); doc.rect(cellX + cellW / 2, cellY, cellW / 2, cellH / 2, 'F');
+              doc.setFillColor(c[2]); doc.rect(cellX, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
+              doc.setFillColor(c[3]); doc.rect(cellX + cellW / 2, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
+            }
 
             doc.setTextColor(0);
             doc.setFontSize(7);
@@ -1101,9 +1226,29 @@ export default function App() {
       // 3. --- AJUSTE: Adiciona a página final com a lista de datas ---
       pdfDoc.addPage();
       pdfDoc.addImage(senaiLogo, 'PNG', pdfWidth - 35, 8, 25, 6.4);
+
+      // --- Resumo do Curso ---
       pdfDoc.setFontSize(16).setFont(undefined, 'bold');
-      pdfDoc.text('Datas Importantes', 14, 20);
-      let currentY = 30;
+      pdfDoc.text('Resumo do Curso', 14, 20);
+
+      pdfDoc.setFontSize(12).setFont(undefined, 'normal');
+      let summaryY = 30;
+      if (courseMetrics) {
+        pdfDoc.text(`Dias Letivos: ${courseMetrics.days}`, 14, summaryY);
+        pdfDoc.text(`Carga Horária Total: ${courseMetrics.hours}h`, 80, summaryY);
+        pdfDoc.text(`Total de Aulas: ${courseMetrics.classes}`, 150, summaryY);
+        summaryY += 10;
+      }
+
+      // Line separator
+      pdfDoc.setDrawColor(200);
+      pdfDoc.line(14, summaryY, pdfWidth - 14, summaryY);
+      summaryY += 10;
+
+      // --- Datas Importantes ---
+      pdfDoc.setFontSize(16).setFont(undefined, 'bold');
+      pdfDoc.text('Datas Importantes', 14, summaryY);
+      let currentY = summaryY + 10;
 
       const renderListToPdf = (title, dateSet, namesMap = null) => {
         if (dateSet.size > 0) {
@@ -1245,41 +1390,36 @@ export default function App() {
                 emendas={dates.emendas}
                 makeupDays={dates.makeupDays}
                 hoursPerDay={hoursPerDay}
+                recesses={dates.recesses}
+                vacations={vacationDays}
               />
               {dates.curricularUnits.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-bold text-gray-600 mb-2">UCs Adicionadas</h3>
+                  <h3 className="font-bold text-gray-600 mb-2">Unidades Curriculares</h3>
                   <ul className="space-y-2">
-                    {dates.curricularUnits.map(unit => (
-                      <li key={unit.id} className="flex justify-between items-center text-sm p-2 rounded bg-white shadow-sm">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-4 h-4 rounded-full ${unit.color}`}></div>
-                          <div>
-                            <span className="font-semibold block">{unit.name}</span>
-                            {unit.startDate && unit.endDate && (
-                              (() => {
-                                // Filtrar makeup days deste UC (assumindo que makeupNames mapeia Date -> UnitID)
-                                // Note: makeupDays é Set de strings ISO. makeupNames é Map<ISO, ID>.
-                                const ucMakeupDays = new Set([...dates.makeupDays].filter(d => String(makeupNames.get(d)) === String(unit.id)));
-                                const ucDays = getEffectiveDays(unit.startDate, unit.endDate, unit.weekDays, dates.holidays, dates.emendas, ucMakeupDays);
-                                const metrics = calculateMetrics(ucDays.length, hoursPerDay);
-                                return (
-                                  <span className="text-xs text-gray-500 block">
-                                    {metrics.days} dias • {metrics.hours}h • {metrics.classes} aulas
-                                  </span>
-                                );
-                              })()
-                            )}
+                    {ucMetrics.map(unit => (
+                      <li key={unit.id} className="p-2 rounded bg-white shadow-sm">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2 flex-1">
+                            <div className={`w-4 h-4 rounded ${unit.color}`}></div>
+                            <span className="font-medium text-sm">{unit.name}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => setEditingUnit(unit)} className="text-blue-500 hover:text-blue-700">
+                              <FontAwesomeIcon icon={faEdit} />
+                            </button>
+                            <button onClick={() => handleRemoveUnit(unit.id)} className="text-red-500 hover:text-red-700">
+                              <FontAwesomeIcon icon={faTimes} />
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setEditingUnit(unit)} className="text-blue-500 hover:text-blue-700 font-bold text-xs">
-                            <FontAwesomeIcon icon={faEdit} /> Editar
-                          </button>
-                          <button onClick={() => handleRemoveUnit(unit.id)} className="text-red-500 hover:text-red-700 font-bold text-lg">
-                            <FontAwesomeIcon icon={faTimes} />
-                          </button>
-                        </div>
+                        {unit.metrics && (
+                          <div className="text-xs text-gray-500 mt-1 ml-6 flex gap-3">
+                            <span>{unit.metrics.days} dias</span>
+                            <span>{unit.metrics.hours}h</span>
+                            <span>{unit.metrics.classes} aulas</span>
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -1316,7 +1456,16 @@ export default function App() {
                   <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors pdf-hide">
                     <FontAwesomeIcon icon={faChevronLeft} className="mr-2" /> Anterior
                   </button>
-                  <h2 className="text-2xl font-bold text-red-700 capitalize">{monthName} de {year}</h2>
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold text-red-700 capitalize">{monthName} de {year}</h2>
+                    {courseMetrics && (
+                      <div className="text-xs text-gray-600 mt-1 flex justify-center gap-4">
+                        <span><strong>{courseMetrics.days}</strong> dias</span>
+                        <span><strong>{courseMetrics.hours}h</strong> totais</span>
+                        <span><strong>{courseMetrics.classes}</strong> aulas</span>
+                      </div>
+                    )}
+                  </div>
                   <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors pdf-hide">
                     Próximo <FontAwesomeIcon icon={faChevronRight} className="ml-2" />
                   </button>
@@ -1429,7 +1578,7 @@ export default function App() {
             </div>
           </div>
         )}
-      </div>
+      </div >
     </>
   );
 }

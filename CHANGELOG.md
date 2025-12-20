@@ -7,6 +7,44 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação de sistema de rastreabilidade via `prompts/history.md`.
 - Diretriz de consulta sistemática ao Roadmap para alinhamento de desenvolvimento.
 
+## [1.9.2] - 2025-12-19
+### Corrigido
+- Calendário pintando dias fora do intervalo do curso (antes do início/depois do fim).
+- UCs não pintando automaticamente ao definir datas. Agora reflete dinamicamente.
+
+## [1.9.1] - 2025-12-19
+### Adicionado
+- Inclusão de métricas (Dias, Horas, Aulas) na página final do PDF Completo.
+
+## [1.9.0] - 2025-12-19
+### Adicionado
+- Suporte a múltiplas UCs por dia (até 4).
+- Visualização de células divididas (Split View) no Grid e no PDF Compacto.
+    - Atualização do gerador de PDF Compacto para desenhar retângulos fracionados.
+    - Documentação da versão 1.9.0.
+
+### 🟢 Prompt 15: Métricas no PDF
+- **Usuário (Literal):** "Os dados de quantidades de horas, carga horaria etc também deverá ser mostrado na impressão na página final."
+- **Ações:**
+    - Atualização da função `generateFullPdf` para incluir seção "Resumo do Curso" com `courseMetrics` (Dias, Horas, Aulas) antes da lista de datas.
+    - Documentação da versão 1.9.1.
+
+### 🟢 Prompt 16: Correção de Datas
+- **Usuário (Literal):** "Quando eu implemento as datas do curso, ele pinta o calendário nas datas certas porém ele também pinta as datas antes e depois. E quando eu atribuo uma nova UC ele não está pintando o calendário."
+- **Ações:**
+    - Correção no `getDayStyle` para respeitar estritamente `dates.startDate` e `dates.endDate` para aulas genéricas.
+    - Implementação de pintura automática de UCs: O grid agora verifica se o dia está dentro do range de alguma UC e aplica a cor correspondente dinamicamente.
+    - Documentação da versão 1.9.2.
+
+- Lógica de Toggle (Adicionar/Remover) na seleção de cores manuais.
+
+## [1.8.0] - 2025-12-19
+### Adicionado
+- Campo "Horas/Dia" individual por Unidade Curricular.
+- Lógica para calcular término da Uc baseada em carga horária específica (override do padrão global).
+### Corrigido
+- Cálculo de término da UC agora respeita Recessos e Férias cadastrados.
+
 ## [1.7.0] - 2025-12-19
 ### Adicionado
 - **PDF Compacto**: Nova opção de exportação com layout anual (12 meses) em uma única página A4 (Paisagem).
