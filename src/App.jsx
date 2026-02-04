@@ -1172,6 +1172,9 @@ export default function App() {
         'bg-white': '#ffffff'
       };
 
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = doc.internal.pageSize.getHeight();
+
       for (let year = startYear; year <= endYear; year++) {
         if (year > startYear) doc.addPage();
 
@@ -1186,8 +1189,7 @@ export default function App() {
           return '#ffffff';
         };
 
-        const pdfWidth = doc.internal.pageSize.getWidth();
-        const pdfHeight = doc.internal.pageSize.getHeight();
+
 
         // Logo SENAI
         doc.addImage(senaiLogo, 'PNG', 10, 8, 25, 6.4);
