@@ -1008,6 +1008,27 @@ export default function App() {
       const startYear = dates.startDate ? new Date(dates.startDate).getFullYear() : currentDate.getFullYear();
       const endYear = dates.endDate ? new Date(dates.endDate).getFullYear() : startYear;
 
+      const TAILWIND_COLORS = {
+        'bg-blue-200': '#bfdbfe', 'bg-blue-300': '#93c5fd', 'bg-blue-500': '#3b82f6',
+        'bg-red-300': '#fca5a5', 'bg-red-500': '#ef4444',
+        'bg-green-300': '#86efac', 'bg-green-500': '#22c55e',
+        'bg-purple-200': '#e9d5ff', 'bg-purple-300': '#d8b4fe', 'bg-purple-500': '#a855f7',
+        'bg-orange-200': '#fed7aa', 'bg-orange-300': '#fdba74', 'bg-orange-500': '#f97316',
+        'bg-yellow-200': '#fef08a', 'bg-yellow-300': '#fde047', 'bg-yellow-500': '#eab308',
+        'bg-gray-200': '#e5e7eb', 'bg-gray-300': '#d1d5db', 'bg-gray-500': '#6b7280', 'bg-gray-50': '#f9fafb',
+        'bg-teal-300': '#5eead4', 'bg-teal-400': '#2dd4bf', 'bg-teal-500': '#14b8a6', 'bg-teal-600': '#0d9488',
+        'bg-indigo-200': '#c7d2fe', 'bg-indigo-300': '#a5b4fc', 'bg-indigo-500': '#6366f1',
+        'bg-pink-200': '#fbcfe8', 'bg-pink-300': '#f9a8d4', 'bg-pink-500': '#ec4899',
+        'bg-cyan-300': '#67e8f9', 'bg-cyan-400': '#22d3ee', 'bg-cyan-500': '#06b6d4',
+        'bg-lime-300': '#bef264', 'bg-lime-400': '#a3e635', 'bg-lime-500': '#84cc16',
+        'bg-fuchsia-300': '#f0abfc', 'bg-fuchsia-400': '#e879f9', 'bg-fuchsia-500': '#d946ef',
+        'bg-rose-300': '#fda4af', 'bg-rose-400': '#fb7185', 'bg-rose-500': '#f43f5e',
+        'bg-sky-300': '#7dd3fc', 'bg-sky-400': '#38bdf8', 'bg-sky-500': '#0ea5e9',
+        'bg-amber-300': '#fcd34d', 'bg-amber-400': '#fbbf24', 'bg-amber-500': '#f59e0b',
+        'bg-violet-300': '#c4b5fd', 'bg-violet-400': '#a78bfa', 'bg-violet-500': '#8b5cf6',
+        'bg-white': '#ffffff'
+      };
+
       for (let year = startYear; year <= endYear; year++) {
         if (year > startYear) doc.addPage();
 
