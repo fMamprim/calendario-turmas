@@ -1094,7 +1094,7 @@ export default function App() {
   const generateGanttPdf = async () => {
     setIsGeneratingPdf(true);
     try {
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
       const startYear = dates.startDate ? new Date(dates.startDate).getFullYear() : currentDate.getFullYear();
       const endYear = dates.endDate ? new Date(dates.endDate).getFullYear() : startYear;
 
@@ -1147,7 +1147,7 @@ export default function App() {
   const generateCompactPdf = async () => {
     setIsGeneratingPdf(true);
     try {
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
       const startYear = dates.startDate ? new Date(dates.startDate).getFullYear() : currentDate.getFullYear();
       const endYear = dates.endDate ? new Date(dates.endDate).getFullYear() : startYear;
 
@@ -1495,7 +1495,7 @@ export default function App() {
       return;
     }
     setIsGeneratingPdf(true);
-    const pdfDoc = new jsPDF('p', 'mm', 'a4');
+    const pdfDoc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
     const pdfWidth = pdfDoc.internal.pageSize.getWidth();
     const pdfHeight = pdfDoc.internal.pageSize.getHeight();
     const originalDate = currentDate;
