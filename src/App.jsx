@@ -977,217 +977,204 @@ export default function App() {
     setIsGeneratingPdf(true);
     try {
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const year = currentDate.getFullYear();
+      const startYear = dates.startDate ? new Date(dates.startDate).getFullYear() : currentDate.getFullYear();
+      const endYear = dates.endDate ? new Date(dates.endDate).getFullYear() : startYear;
 
-      const TAILWIND_COLORS = {
-        'bg-blue-200': '#bfdbfe', 'bg-blue-300': '#93c5fd', 'bg-blue-500': '#3b82f6',
-        'bg-red-300': '#fca5a5', 'bg-red-500': '#ef4444',
-        'bg-green-300': '#86efac', 'bg-green-500': '#22c55e',
-        'bg-purple-200': '#e9d5ff', 'bg-purple-300': '#d8b4fe', 'bg-purple-500': '#a855f7',
-        'bg-orange-200': '#fed7aa', 'bg-orange-300': '#fdba74', 'bg-orange-500': '#f97316',
-        'bg-yellow-200': '#fef08a', 'bg-yellow-300': '#fde047', 'bg-yellow-500': '#eab308',
-        'bg-gray-200': '#e5e7eb', 'bg-gray-500': '#6b7280', 'bg-gray-50': '#f9fafb',
-        'bg-teal-300': '#5eead4', 'bg-teal-400': '#2dd4bf', 'bg-teal-600': '#0d9488',
-        'bg-indigo-200': '#c7d2fe', 'bg-indigo-300': '#a5b4fc',
-        'bg-pink-200': '#fbcfe8', 'bg-pink-300': '#f9a8d4',
-        'bg-cyan-300': '#67e8f9', 'bg-cyan-400': '#22d3ee',
-        'bg-lime-300': '#bef264', 'bg-lime-400': '#a3e635',
-        'bg-fuchsia-300': '#f0abfc', 'bg-fuchsia-400': '#e879f9',
-        'bg-rose-300': '#fda4af', 'bg-rose-400': '#fb7185',
-        'bg-sky-300': '#7dd3fc', 'bg-sky-400': '#38bdf8',
-        'bg-amber-300': '#fcd34d', 'bg-amber-400': '#fbbf24',
-        'bg-violet-300': '#c4b5fd', 'bg-violet-400': '#a78bfa',
-        'bg-white': '#ffffff'
-      };
+      for (let year = startYear; year <= endYear; year++) {
+        if (year > startYear) doc.addPage();
 
-      const getHex = (className) => {
-        if (!className) return '#ffffff';
-        // Tenta encontrar cor direta no mapa
-        if (TAILWIND_COLORS[className]) return TAILWIND_COLORS[className];
+        const getHex = (className) => {
+          if (!className) return '#ffffff';
+          // Tenta encontrar cor direta no mapa
+          if (TAILWIND_COLORS[className]) return TAILWIND_COLORS[className];
 
-        const bgMatch = className.match(/bg-[a-z]+-[0-9]+/);
-        if (bgMatch) return TAILWIND_COLORS[bgMatch[0]] || '#ffffff';
-        return '#ffffff';
-      };
+          const bgMatch = className.match(/bg-[a-z]+-[0-9]+/);
+          if (bgMatch) return TAILWIND_COLORS[bgMatch[0]] || '#ffffff';
+          return '#ffffff';
+        };
 
-      const pdfWidth = doc.internal.pageSize.getWidth();
-      const pdfHeight = doc.internal.pageSize.getHeight();
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = doc.internal.pageSize.getHeight();
 
-      // Logo SENAI
-      doc.addImage(senaiLogo, 'PNG', 10, 8, 25, 6.4);
+        // Logo SENAI
+        doc.addImage(senaiLogo, 'PNG', 10, 8, 25, 6.4);
 
-      // Nome da Turma (se houver)
-      if (turmaName) {
-        doc.setFontSize(14);
+        // Nome da Turma (se houver)
+        if (turmaName) {
+          doc.setFontSize(14);
+          doc.setTextColor(40);
+          doc.text(turmaName, 148.5, 10, { align: 'center' });
+        }
+
+        // Título (em negrito)
+        doc.setFontSize(18).setFont(undefined, 'bold');
         doc.setTextColor(40);
-        doc.text(turmaName, 148.5, 10, { align: 'center' });
-      }
+        doc.text(`Calendário Escolar ${year}`, 148.5, turmaName ? 18 : 12, { align: 'center' });
 
-      // Título (em negrito)
-      doc.setFontSize(18).setFont(undefined, 'bold');
-      doc.setTextColor(40);
-      doc.text(`Calendário Escolar ${year}`, 148.5, turmaName ? 18 : 12, { align: 'center' });
+        // Métricas do Curso
+        if (courseMetrics) {
+          doc.setFontSize(10);
+          doc.setTextColor(60);
+          const metricsY = turmaName ? 24 : 18;
+          doc.text(`${courseMetrics.days} dias • ${courseMetrics.hours}h • ${courseMetrics.classes} aulas`, 148.5, metricsY, { align: 'center' });
+        }
 
-      // Métricas do Curso
-      if (courseMetrics) {
-        doc.setFontSize(10);
-        doc.setTextColor(60);
-        const metricsY = turmaName ? 24 : 18;
-        doc.text(`${courseMetrics.days} dias • ${courseMetrics.hours}h • ${courseMetrics.classes} aulas`, 148.5, metricsY, { align: 'center' });
-      }
+        // Grid
+        const startX = 10;
+        const startY = turmaName ? 30 : 24;
+        const colWidth = 68;
+        const rowHeight = 53; // Reduzido levemente para caber a legenda embaixo
+        const cols = 4;
+        const cellW = 8;
+        const cellH = 6;
 
-      // Grid
-      const startX = 10;
-      const startY = turmaName ? 30 : 24;
-      const colWidth = 68;
-      const rowHeight = 53; // Reduzido levemente para caber a legenda embaixo
-      const cols = 4;
-      const cellW = 8;
-      const cellH = 6;
+        for (let m = 0; m < 12; m++) {
+          const col = m % cols;
+          const row = Math.floor(m / cols);
+          const curX = startX + (col * colWidth);
+          const curY = startY + (row * rowHeight);
 
-      for (let m = 0; m < 12; m++) {
-        const col = m % cols;
-        const row = Math.floor(m / cols);
-        const curX = startX + (col * colWidth);
-        const curY = startY + (row * rowHeight);
+          const mDate = new Date(year, m, 1);
+          const mName = mDate.toLocaleString('pt-BR', { month: 'long' });
+          doc.setFontSize(11);
+          doc.setTextColor(0);
+          doc.text(mName.charAt(0).toUpperCase() + mName.slice(1), curX + (colWidth / 2), curY - 2, { align: 'center' });
 
-        const mDate = new Date(year, m, 1);
-        const mName = mDate.toLocaleString('pt-BR', { month: 'long' });
-        doc.setFontSize(11);
-        doc.setTextColor(0);
-        doc.text(mName.charAt(0).toUpperCase() + mName.slice(1), curX + (colWidth / 2), curY - 2, { align: 'center' });
+          doc.setFontSize(7);
+          doc.setTextColor(100);
+          ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].forEach((d, i) => {
+            doc.text(d, curX + 2 + (i * cellW), curY + 2);
+          });
 
-        doc.setFontSize(7);
-        doc.setTextColor(100);
-        ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].forEach((d, i) => {
-          doc.text(d, curX + 2 + (i * cellW), curY + 2);
-        });
+          const firstDay = new Date(year, m, 1).getDay();
+          const daysInMonth = new Date(year, m + 1, 0).getDate();
 
-        const firstDay = new Date(year, m, 1).getDay();
-        const daysInMonth = new Date(year, m + 1, 0).getDate();
+          let d = 1;
+          for (let w = 0; w < 6; w++) {
+            for (let wd = 0; wd < 7; wd++) {
+              if (w === 0 && wd < firstDay) continue;
+              if (d > daysInMonth) break;
 
-        let d = 1;
-        for (let w = 0; w < 6; w++) {
-          for (let wd = 0; wd < 7; wd++) {
-            if (w === 0 && wd < firstDay) continue;
-            if (d > daysInMonth) break;
+              const dateStr = formatDateToISO(new Date(year, m, d));
+              const dayOfWeek = wd;
 
-            const dateStr = formatDateToISO(new Date(year, m, d));
-            const dayOfWeek = wd;
+              let colorsToDraw = [];
 
-            let colorsToDraw = [];
+              if (individualDayColors[dateStr]) {
+                const c = individualDayColors[dateStr];
+                if (Array.isArray(c)) colorsToDraw = c.map(cl => getHex(cl));
+                else colorsToDraw = [getHex(c)];
+              } else {
+                let singleHex = '#ffffff';
 
-            if (individualDayColors[dateStr]) {
-              const c = individualDayColors[dateStr];
-              if (Array.isArray(c)) colorsToDraw = c.map(cl => getHex(cl));
-              else colorsToDraw = [getHex(c)];
-            } else {
-              let singleHex = '#ffffff';
+                // 1. Verificações de alta prioridade (Feriados, Recesso, etc)
+                if (dates.holidays.has(dateStr)) singleHex = getHex(colors.holiday);
+                else if (dates.recesses.has(dateStr)) singleHex = getHex(colors.recess);
+                else if (vacationDays.has(dateStr)) singleHex = getHex(colors.vacation);
+                else if (dates.emendas.has(dateStr)) singleHex = getHex(colors.emenda);
+                else if (dates.makeupDays.has(dateStr)) singleHex = getHex(colors.makeup);
+                else {
+                  // 2. Verifica se é dia de UC (Unidade Curricular)
+                  const activeUCs = dates.curricularUnits.filter(uc =>
+                    uc.startDate && uc.endDate &&
+                    dateStr >= uc.startDate && dateStr <= uc.endDate &&
+                    uc.weekDays.includes(dayOfWeek)
+                  );
 
-              // 1. Verificações de alta prioridade (Feriados, Recesso, etc)
-              if (dates.holidays.has(dateStr)) singleHex = getHex(colors.holiday);
-              else if (dates.recesses.has(dateStr)) singleHex = getHex(colors.recess);
-              else if (vacationDays.has(dateStr)) singleHex = getHex(colors.vacation);
-              else if (dates.emendas.has(dateStr)) singleHex = getHex(colors.emenda);
-              else if (dates.makeupDays.has(dateStr)) singleHex = getHex(colors.makeup);
-              else {
-                // 2. Verifica se é dia de UC (Unidade Curricular)
-                const activeUCs = dates.curricularUnits.filter(uc =>
-                  uc.startDate && uc.endDate &&
-                  dateStr >= uc.startDate && dateStr <= uc.endDate &&
-                  uc.weekDays.includes(dayOfWeek)
-                );
+                  if (activeUCs.length > 0) {
+                    colorsToDraw = activeUCs.map(uc => getHex(uc.color));
+                  } else {
+                    // 3. Fallback: Dia de Aula Genérico (Respeitando limites do curso)
+                    const inCourseRange = dates.startDate && dateStr >= dates.startDate && (!dates.endDate || dateStr <= dates.endDate);
 
-                if (activeUCs.length > 0) {
-                  colorsToDraw = activeUCs.map(uc => getHex(uc.color));
-                } else {
-                  // 3. Fallback: Dia de Aula Genérico (Respeitando limites do curso)
-                  const inCourseRange = dates.startDate && dateStr >= dates.startDate && (!dates.endDate || dateStr <= dates.endDate);
-
-                  if (inCourseRange) {
-                    if (classWeekDays.includes(dayOfWeek)) singleHex = getHex(colors.class);
-                    else if (dayOfWeek === 0 || dayOfWeek === 6) singleHex = getHex(colors.weekend);
+                    if (inCourseRange) {
+                      if (classWeekDays.includes(dayOfWeek)) singleHex = getHex(colors.class);
+                      else if (dayOfWeek === 0 || dayOfWeek === 6) singleHex = getHex(colors.weekend);
+                    }
                   }
+                }
+
+                // Se colorsToDraw ainda estiver vazio, usa singleHex
+                if (colorsToDraw.length === 0) {
+                  colorsToDraw = [singleHex];
                 }
               }
 
-              // Se colorsToDraw ainda estiver vazio, usa singleHex
-              if (colorsToDraw.length === 0) {
-                colorsToDraw = [singleHex];
+              const cellX = curX + (wd * cellW);
+              const cellY = curY + 3 + (w * cellH);
+
+              if (colorsToDraw.length === 1) {
+                doc.setFillColor(colorsToDraw[0]);
+                doc.rect(cellX, cellY, cellW, cellH, 'F');
+              } else if (colorsToDraw.length === 2) {
+                doc.setFillColor(colorsToDraw[0]);
+                doc.rect(cellX, cellY, cellW / 2, cellH, 'F');
+                doc.setFillColor(colorsToDraw[1]);
+                doc.rect(cellX + cellW / 2, cellY, cellW / 2, cellH, 'F');
+              } else if (colorsToDraw.length === 3) {
+                doc.setFillColor(colorsToDraw[0]);
+                doc.rect(cellX, cellY, cellW, cellH / 2, 'F');
+                doc.setFillColor(colorsToDraw[1]);
+                doc.rect(cellX, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
+                doc.setFillColor(colorsToDraw[2]);
+                doc.rect(cellX + cellW / 2, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
+              } else if (colorsToDraw.length >= 4) {
+                const c = colorsToDraw;
+                doc.setFillColor(c[0]); doc.rect(cellX, cellY, cellW / 2, cellH / 2, 'F');
+                doc.setFillColor(c[1]); doc.rect(cellX + cellW / 2, cellY, cellW / 2, cellH / 2, 'F');
+                doc.setFillColor(c[2]); doc.rect(cellX, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
+                doc.setFillColor(c[3]); doc.rect(cellX + cellW / 2, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
               }
+
+              // Borda fina ao redor do dia
+              doc.setDrawColor(200);
+              doc.setLineWidth(0.1);
+              doc.rect(cellX, cellY, cellW, cellH);
+
+              doc.setTextColor(0);
+              doc.setFontSize(7);
+              doc.text(String(d), cellX + cellW / 2, cellY + cellH - 1.5, { align: 'center' });
+
+              d++;
             }
-
-            const cellX = curX + (wd * cellW);
-            const cellY = curY + 3 + (w * cellH);
-
-            if (colorsToDraw.length === 1) {
-              doc.setFillColor(colorsToDraw[0]);
-              doc.rect(cellX, cellY, cellW, cellH, 'F');
-            } else if (colorsToDraw.length === 2) {
-              doc.setFillColor(colorsToDraw[0]);
-              doc.rect(cellX, cellY, cellW / 2, cellH, 'F');
-              doc.setFillColor(colorsToDraw[1]);
-              doc.rect(cellX + cellW / 2, cellY, cellW / 2, cellH, 'F');
-            } else if (colorsToDraw.length === 3) {
-              doc.setFillColor(colorsToDraw[0]);
-              doc.rect(cellX, cellY, cellW, cellH / 2, 'F');
-              doc.setFillColor(colorsToDraw[1]);
-              doc.rect(cellX, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
-              doc.setFillColor(colorsToDraw[2]);
-              doc.rect(cellX + cellW / 2, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
-            } else if (colorsToDraw.length >= 4) {
-              const c = colorsToDraw;
-              doc.setFillColor(c[0]); doc.rect(cellX, cellY, cellW / 2, cellH / 2, 'F');
-              doc.setFillColor(c[1]); doc.rect(cellX + cellW / 2, cellY, cellW / 2, cellH / 2, 'F');
-              doc.setFillColor(c[2]); doc.rect(cellX, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
-              doc.setFillColor(c[3]); doc.rect(cellX + cellW / 2, cellY + cellH / 2, cellW / 2, cellH / 2, 'F');
-            }
-
-            // Borda fina ao redor do dia
-            doc.setDrawColor(200);
-            doc.setLineWidth(0.1);
-            doc.rect(cellX, cellY, cellW, cellH);
-
-            doc.setTextColor(0);
-            doc.setFontSize(7);
-            doc.text(String(d), cellX + cellW / 2, cellY + cellH - 1.5, { align: 'center' });
-
-            d++;
+            if (d > daysInMonth) break;
           }
-          if (d > daysInMonth) break;
         }
+
+        // Legenda no rodapé
+        doc.setFontSize(8);
+        let legendX = 10;
+        // Calcula posição Y da legenda baseado no fim do grid
+        const gridEndY = startY + (3 * rowHeight);
+        let currentLegendY = gridEndY + 5;
+
+        const legendItems = [
+          { label: 'Aula', color: colors.class },
+          ...dates.curricularUnits.map(uc => ({ label: uc.name, color: uc.color })),
+          { label: 'Feriado', color: colors.holiday },
+          { label: 'Recesso', color: colors.recess },
+          { label: 'Férias', color: colors.vacation },
+          { label: 'Reposição', color: colors.makeup },
+          { label: 'Emenda', color: colors.emenda }
+        ];
+
+        legendItems.forEach((item, index) => {
+          // Verifica se cabe na linha (largura ~280mm útil)
+          if (legendX + 40 > 287) {
+            legendX = 10;
+            currentLegendY += 5;
+          }
+          doc.setFillColor(getHex(item.color));
+          doc.rect(legendX, currentLegendY, 4, 4, 'F');
+          doc.text(item.label, legendX + 5, currentLegendY + 3);
+          legendX += 40; // Espaçamento horizontal entre itens
+        });
       }
 
-      // Legenda no rodapé
-      doc.setFontSize(8);
-      let legendX = 10;
-      // Calcula posição Y da legenda baseado no fim do grid
-      const gridEndY = startY + (3 * rowHeight);
-      let currentLegendY = gridEndY + 5;
-
-      const legendItems = [
-        { label: 'Aula', color: colors.class },
-        ...dates.curricularUnits.map(uc => ({ label: uc.name, color: uc.color })),
-        { label: 'Feriado', color: colors.holiday },
-        { label: 'Recesso', color: colors.recess },
-        { label: 'Férias', color: colors.vacation },
-        { label: 'Reposição', color: colors.makeup },
-        { label: 'Emenda', color: colors.emenda }
-      ];
-
-      legendItems.forEach((item, index) => {
-        // Verifica se cabe na linha (largura ~280mm útil)
-        if (legendX + 40 > 287) {
-          legendX = 10;
-          currentLegendY += 5;
-        }
-        doc.setFillColor(getHex(item.color));
-        doc.rect(legendX, currentLegendY, 4, 4, 'F');
-        doc.text(item.label, legendX + 5, currentLegendY + 3);
-        legendX += 40; // Espaçamento horizontal entre itens
-      });
-
-      doc.save(`Calendario_Compacto_${year}.pdf`);
+      const fileName = startYear === endYear
+        ? `Calendario_Compacto_${startYear}.pdf`
+        : `Calendario_Compacto_${startYear}-${endYear}.pdf`;
+      doc.save(fileName);
 
       // === PÁGINA DE RESUMO (igual ao PDF Completo) ===
       doc.addPage();
