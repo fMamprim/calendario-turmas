@@ -600,12 +600,17 @@ const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWe
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
 const GanttChart = ({ startDate, endDate, curricularUnits, holidays, recesses, vacations, emendas, makeupDays, colors }) => {
   if (!startDate || !endDate) return <div className="p-6 bg-white rounded-xl shadow-lg text-center text-gray-500">Defina as datas de início e fim do curso para visualizar o Gantt.</div>;
 
   const start = new Date(startDate);
   const end = new Date(endDate);
-  
+
   // Prepare data to display: either UCs or a single Course bar
   const displayUnits = curricularUnits && curricularUnits.length > 0 ? curricularUnits : [
     {
@@ -613,15 +618,15 @@ const GanttChart = ({ startDate, endDate, curricularUnits, holidays, recesses, v
       name: 'Curso Completo',
       startDate: startDate,
       endDate: endDate,
-      color: colors ? colors.class : 'bg-blue-500' 
+      color: colors ? colors.class : 'bg-blue-500'
     }
   ];
 
   // Generate months for the header
   const months = [];
   let current = new Date(start);
-  current.setDate(1); 
-  
+  current.setDate(1);
+
   while (current <= end) {
     months.push(new Date(current));
     current.setMonth(current.getMonth() + 1);
@@ -634,66 +639,66 @@ const GanttChart = ({ startDate, endDate, curricularUnits, holidays, recesses, v
       <div className="min-w-[800px]">
         {/* Helper to calculate positions */}
         <div className="mb-4 text-sm text-gray-500">
-           Visão geral do cronograma{curricularUnits && curricularUnits.length > 0 ? ' por Unidade Curricular' : ' do Curso'}.
+          Visão geral do cronograma{curricularUnits && curricularUnits.length > 0 ? ' por Unidade Curricular' : ' do Curso'}.
         </div>
 
         <div className="relative mt-4 border rounded-lg overflow-hidden">
-             {/* Header Months */}
-             <div className="flex bg-gray-100 border-b">
-                <div className="w-48 flex-shrink-0 p-2 font-bold text-gray-700 border-r">{curricularUnits && curricularUnits.length > 0 ? 'Unidade Curricular' : 'Curso'}</div>
-                <div className="flex-1 flex">
-                    {months.map((m, i) => {
-                        return (
-                           <div key={i} className="flex-1 text-center text-xs font-bold border-l border-gray-300 py-2 truncate">
-                               {m.toLocaleString('pt-BR', { month: 'short', year: '2-digit' })}
-                           </div>
-                        );
-                    })}
-                </div>
-             </div>
-
-             {/* UC Rows */}
-             <div className="bg-white">
-             {displayUnits.map(uc => {
-                if (!uc.startDate || !uc.endDate) return null;
-                const ucStart = new Date(uc.startDate);
-                const ucEnd = new Date(uc.endDate);
-                
-                // Calculate position relative to timeline start/end
-                const totalDuration = end - start;
-                const offset = ucStart - start;
-                const duration = ucEnd - ucStart;
-                
-                // Clamp values
-                let left = (offset / totalDuration) * 100;
-                let width = (duration / totalDuration) * 100;
-                
-                if (left < 0) { 
-                    width += left; 
-                    left = 0; 
-                }
-                if (width + left > 100) width = 100 - left;
-                
-                if (width <= 0) return null;
-
+          {/* Header Months */}
+          <div className="flex bg-gray-100 border-b">
+            <div className="w-48 flex-shrink-0 p-2 font-bold text-gray-700 border-r">{curricularUnits && curricularUnits.length > 0 ? 'Unidade Curricular' : 'Curso'}</div>
+            <div className="flex-1 flex">
+              {months.map((m, i) => {
                 return (
-                    <div key={uc.id} className="flex border-b last:border-0 hover:bg-gray-50 h-12 relative group">
-                        <div className="w-48 flex-shrink-0 text-sm font-medium text-gray-700 flex items-center px-2 truncate border-r z-10 bg-white" title={uc.name}>
-                            {uc.name}
-                        </div>
-                        <div className="flex-1 relative h-full">
-                            <div 
-                                className={`absolute top-2 bottom-2 rounded-md ${uc.color} opacity-90 shadow-sm flex items-center justify-center text-xs text-white overflow-hidden whitespace-nowrap px-2`}
-                                style={{ left: `${left}%`, width: `${width}%` }}
-                                title={`${uc.name}: ${ucStart.toLocaleDateString()} - ${ucEnd.toLocaleDateString()}`}
-                            >
-                                {width > 10 && <span className="drop-shadow-md">{uc.name}</span>}
-                            </div>
-                        </div>
-                    </div>
+                  <div key={i} className="flex-1 text-center text-xs font-bold border-l border-gray-300 py-2 truncate">
+                    {m.toLocaleString('pt-BR', { month: 'short', year: '2-digit' })}
+                  </div>
                 );
-             })}
-             </div>
+              })}
+            </div>
+          </div>
+
+          {/* UC Rows */}
+          <div className="bg-white">
+            {displayUnits.map(uc => {
+              if (!uc.startDate || !uc.endDate) return null;
+              const ucStart = new Date(uc.startDate);
+              const ucEnd = new Date(uc.endDate);
+
+              // Calculate position relative to timeline start/end
+              const totalDuration = end - start;
+              const offset = ucStart - start;
+              const duration = ucEnd - ucStart;
+
+              // Clamp values
+              let left = (offset / totalDuration) * 100;
+              let width = (duration / totalDuration) * 100;
+
+              if (left < 0) {
+                width += left;
+                left = 0;
+              }
+              if (width + left > 100) width = 100 - left;
+
+              if (width <= 0) return null;
+
+              return (
+                <div key={uc.id} className="flex border-b last:border-0 hover:bg-gray-50 h-12 relative group">
+                  <div className="w-48 flex-shrink-0 text-sm font-medium text-gray-700 flex items-center px-2 truncate border-r z-10 bg-white" title={uc.name}>
+                    {uc.name}
+                  </div>
+                  <div className="flex-1 relative h-full">
+                    <div
+                      className={`absolute top-2 bottom-2 rounded-md ${uc.color} opacity-90 shadow-sm flex items-center justify-center text-xs text-white overflow-hidden whitespace-nowrap px-2`}
+                      style={{ left: `${left}%`, width: `${width}%` }}
+                      title={`${uc.name}: ${ucStart.toLocaleDateString()} - ${ucEnd.toLocaleDateString()}`}
+                    >
+                      {width > 10 && <span className="drop-shadow-md">{uc.name}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -1931,17 +1936,17 @@ export default function App() {
                       vacationNames={vacationNames}
                     />
                   ) : (
-                    <GanttChart 
-                startDate={dates.startDate}
-                endDate={dates.endDate}
-                curricularUnits={dates.curricularUnits}
-                holidays={dates.holidays}
-                recesses={dates.recesses}
-                vacations={vacationDays}
-                emendas={dates.emendas}
-                makeupDays={dates.makeupDays}
-                colors={colors}
-            />
+                    <GanttChart
+                      startDate={dates.startDate}
+                      endDate={dates.endDate}
+                      curricularUnits={dates.curricularUnits}
+                      holidays={dates.holidays}
+                      recesses={dates.recesses}
+                      vacations={vacationDays}
+                      emendas={dates.emendas}
+                      makeupDays={dates.makeupDays}
+                      colors={colors}
+                    />
                   )}
 
 
@@ -2008,14 +2013,6 @@ export default function App() {
 
               <div className="space-y-4 mb-6">
 
-                <button className="flex items-center gap-2 p-3 border rounded-lg hover:bg-blue-50 transition-colors text-left group" onClick={() => setPdfMode('compact')}>
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${pdfMode === 'compact' ? 'border-blue-500' : 'border-gray-300'}`}>
-                    {pdfMode === 'compact' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
-                  </div>
-                  <div>
-                    <span className="block font-medium text-gray-700">Compacto</span>
-                    <span className="text-sm text-gray-500">Visualização resumida do ano (1 página/ano)</span>
-                  </div>
                 <button className="flex items-center gap-2 p-3 border rounded-lg hover:bg-blue-50 transition-colors text-left group" onClick={() => setPdfMode('full')}>
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${pdfMode === 'full' ? 'border-blue-500' : 'border-gray-300'}`}>
                     {pdfMode === 'full' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
@@ -2025,6 +2022,7 @@ export default function App() {
                     <span className="text-sm text-gray-500">Mês por página (detalhado)</span>
                   </div>
                 </button>
+
                 <button className="flex items-center gap-2 p-3 border rounded-lg hover:bg-blue-50 transition-colors text-left group" onClick={() => setPdfMode('compact')}>
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${pdfMode === 'compact' ? 'border-blue-500' : 'border-gray-300'}`}>
                     {pdfMode === 'compact' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
@@ -2034,6 +2032,7 @@ export default function App() {
                     <span className="text-sm text-gray-500">Visualização resumida do ano (1 página/ano)</span>
                   </div>
                 </button>
+
                 <button className="flex items-center gap-2 p-3 border rounded-lg hover:bg-blue-50 transition-colors text-left group" onClick={() => setPdfMode('gantt')}>
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${pdfMode === 'gantt' ? 'border-blue-500' : 'border-gray-300'}`}>
                     {pdfMode === 'gantt' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
