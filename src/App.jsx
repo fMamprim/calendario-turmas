@@ -1894,7 +1894,7 @@ export default function App() {
                   </button>
                 </div>
                 <div className="lg:col-span-2 space-y-6">
-                  <div className="flex justify-end mb-4">
+                  <div className="flex justify-end mb-4 pdf-hide">
                     <div className="inline-flex rounded-md shadow-sm" role="group">
                       <button
                         type="button"
@@ -1944,26 +1944,7 @@ export default function App() {
             />
                   )}
 
-                  {/* Navegação de Mês (apenas se calendário) */}
-                  {viewMode === 'calendar' && (
-                    <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-md">
-                      <button
-                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                      >
-                        <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5 text-gray-600" />
-                      </button>
-                      <h2 className="text-xl font-bold text-gray-700 capitalize">
-                        {monthName} {year}
-                      </h2>
-                      <button
-                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                      >
-                        <FontAwesomeIcon icon={faChevronRight} className="w-5 h-5 text-gray-600" />
-                      </button>
-                    </div>
-                  )}
+
                 </div>
               </div>
               <div className="mt-4 p-4 bg-white rounded-lg shadow-sm">
@@ -2026,33 +2007,24 @@ export default function App() {
               <h3 className="text-xl font-bold mb-4 text-gray-800">Opções de Exportação</h3>
 
               <div className="space-y-4 mb-6">
-                <label className="flex items-center space-x-3 cursor-pointer p-3 border rounded hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="pdfMode"
-                    checked={pdfMode === 'full'}
-                    onChange={() => setPdfMode('full')}
-                    className="w-5 h-5 text-teal-600"
-                  />
-                  <div>
-                    <span className="block font-semibold">Calendário Completo</span>
-                    <span className="text-xs text-gray-500">Mês por página (detalhado)</span>
-                  </div>
-                </label>
 
-                <label className="flex items-center space-x-3 cursor-pointer p-3 border rounded hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="pdfMode"
-                    checked={pdfMode === 'compact'}
-                    onChange={() => setPdfMode('compact')}
-                    className="w-5 h-5 text-teal-600"
-                  />
-                  <div>
-                    <span className="block font-semibold">Calendário Compacto</span>
-                    <span className="text-xs text-gray-500">Ano inteiro em uma página</span>
+                <button className="flex items-center gap-2 p-3 border rounded-lg hover:bg-blue-50 transition-colors text-left group" onClick={() => setPdfMode('compact')}>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${pdfMode === 'compact' ? 'border-blue-500' : 'border-gray-300'}`}>
+                    {pdfMode === 'compact' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
                   </div>
-                </label>
+                  <div>
+                    <span className="block font-medium text-gray-700">Compacto</span>
+                    <span className="text-sm text-gray-500">Visualização resumida do ano (1 página/ano)</span>
+                  </div>
+                <button className="flex items-center gap-2 p-3 border rounded-lg hover:bg-blue-50 transition-colors text-left group" onClick={() => setPdfMode('full')}>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${pdfMode === 'full' ? 'border-blue-500' : 'border-gray-300'}`}>
+                    {pdfMode === 'full' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                  </div>
+                  <div>
+                    <span className="block font-medium text-gray-700">Calendário Completo</span>
+                    <span className="text-sm text-gray-500">Mês por página (detalhado)</span>
+                  </div>
+                </button>
                 <button className="flex items-center gap-2 p-3 border rounded-lg hover:bg-blue-50 transition-colors text-left group" onClick={() => setPdfMode('compact')}>
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${pdfMode === 'compact' ? 'border-blue-500' : 'border-gray-300'}`}>
                     {pdfMode === 'compact' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
