@@ -600,21 +600,28 @@ const CalendarGrid = ({ month, year, dates, colors, individualDayColors, classWe
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-};
-
-const GanttChart = ({ startDate, endDate, curricularUnits, holidays, recesses, vacations, emendas, makeupDays }) => {
+const GanttChart = ({ startDate, endDate, curricularUnits, holidays, recesses, vacations, emendas, makeupDays, colors }) => {
   if (!startDate || !endDate) return <div className="p-6 bg-white rounded-xl shadow-lg text-center text-gray-500">Defina as datas de início e fim do curso para visualizar o Gantt.</div>;
 
   const start = new Date(startDate);
   const end = new Date(endDate);
+  
+  // Prepare data to display: either UCs or a single Course bar
+  const displayUnits = curricularUnits && curricularUnits.length > 0 ? curricularUnits : [
+    {
+      id: 'course-fallback',
+      name: 'Curso Completo',
+      startDate: startDate,
+      endDate: endDate,
+      color: colors ? colors.class : 'bg-blue-500' 
+    }
+  ];
+
   // Generate months for the header
   const months = [];
   let current = new Date(start);
-  current.setDate(1);
-
+  current.setDate(1); 
+  
   while (current <= end) {
     months.push(new Date(current));
     current.setMonth(current.getMonth() + 1);
@@ -627,66 +634,66 @@ const GanttChart = ({ startDate, endDate, curricularUnits, holidays, recesses, v
       <div className="min-w-[800px]">
         {/* Helper to calculate positions */}
         <div className="mb-4 text-sm text-gray-500">
-          Visão geral do cronograma por Unidade Curricular.
+           Visão geral do cronograma{curricularUnits && curricularUnits.length > 0 ? ' por Unidade Curricular' : ' do Curso'}.
         </div>
 
         <div className="relative mt-4 border rounded-lg overflow-hidden">
-          {/* Header Months */}
-          <div className="flex bg-gray-100 border-b">
-            <div className="w-48 flex-shrink-0 p-2 font-bold text-gray-700 border-r">Unidade Curricular</div>
-            <div className="flex-1 flex">
-              {months.map((m, i) => {
-                return (
-                  <div key={i} className="flex-1 text-center text-xs font-bold border-l border-gray-300 py-2 truncate">
-                    {m.toLocaleString('pt-BR', { month: 'short', year: '2-digit' })}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* UC Rows */}
-          <div className="bg-white">
-            {curricularUnits.map(uc => {
-              if (!uc.startDate || !uc.endDate) return null;
-              const ucStart = new Date(uc.startDate);
-              const ucEnd = new Date(uc.endDate);
-
-              // Calculate position relative to timeline start/end
-              const totalDuration = end - start;
-              const offset = ucStart - start;
-              const duration = ucEnd - ucStart;
-
-              // Clamp values
-              let left = (offset / totalDuration) * 100;
-              let width = (duration / totalDuration) * 100;
-
-              if (left < 0) {
-                width += left;
-                left = 0;
-              }
-              if (width + left > 100) width = 100 - left;
-
-              if (width <= 0) return null;
-
-              return (
-                <div key={uc.id} className="flex border-b last:border-0 hover:bg-gray-50 h-12 relative group">
-                  <div className="w-48 flex-shrink-0 text-sm font-medium text-gray-700 flex items-center px-2 truncate border-r z-10 bg-white" title={uc.name}>
-                    {uc.name}
-                  </div>
-                  <div className="flex-1 relative h-full">
-                    <div
-                      className={`absolute top-2 bottom-2 rounded-md ${uc.color} opacity-90 shadow-sm flex items-center justify-center text-xs text-white overflow-hidden whitespace-nowrap px-2`}
-                      style={{ left: `${left}%`, width: `${width}%` }}
-                      title={`${uc.name}: ${ucStart.toLocaleDateString()} - ${ucEnd.toLocaleDateString()}`}
-                    >
-                      {width > 10 && <span className="drop-shadow-md">{uc.name}</span>}
-                    </div>
-                  </div>
+             {/* Header Months */}
+             <div className="flex bg-gray-100 border-b">
+                <div className="w-48 flex-shrink-0 p-2 font-bold text-gray-700 border-r">{curricularUnits && curricularUnits.length > 0 ? 'Unidade Curricular' : 'Curso'}</div>
+                <div className="flex-1 flex">
+                    {months.map((m, i) => {
+                        return (
+                           <div key={i} className="flex-1 text-center text-xs font-bold border-l border-gray-300 py-2 truncate">
+                               {m.toLocaleString('pt-BR', { month: 'short', year: '2-digit' })}
+                           </div>
+                        );
+                    })}
                 </div>
-              );
-            })}
-          </div>
+             </div>
+
+             {/* UC Rows */}
+             <div className="bg-white">
+             {displayUnits.map(uc => {
+                if (!uc.startDate || !uc.endDate) return null;
+                const ucStart = new Date(uc.startDate);
+                const ucEnd = new Date(uc.endDate);
+                
+                // Calculate position relative to timeline start/end
+                const totalDuration = end - start;
+                const offset = ucStart - start;
+                const duration = ucEnd - ucStart;
+                
+                // Clamp values
+                let left = (offset / totalDuration) * 100;
+                let width = (duration / totalDuration) * 100;
+                
+                if (left < 0) { 
+                    width += left; 
+                    left = 0; 
+                }
+                if (width + left > 100) width = 100 - left;
+                
+                if (width <= 0) return null;
+
+                return (
+                    <div key={uc.id} className="flex border-b last:border-0 hover:bg-gray-50 h-12 relative group">
+                        <div className="w-48 flex-shrink-0 text-sm font-medium text-gray-700 flex items-center px-2 truncate border-r z-10 bg-white" title={uc.name}>
+                            {uc.name}
+                        </div>
+                        <div className="flex-1 relative h-full">
+                            <div 
+                                className={`absolute top-2 bottom-2 rounded-md ${uc.color} opacity-90 shadow-sm flex items-center justify-center text-xs text-white overflow-hidden whitespace-nowrap px-2`}
+                                style={{ left: `${left}%`, width: `${width}%` }}
+                                title={`${uc.name}: ${ucStart.toLocaleDateString()} - ${ucEnd.toLocaleDateString()}`}
+                            >
+                                {width > 10 && <span className="drop-shadow-md">{uc.name}</span>}
+                            </div>
+                        </div>
+                    </div>
+                );
+             })}
+             </div>
         </div>
       </div>
     </div>
@@ -1095,7 +1102,7 @@ export default function App() {
     setIsGeneratingPdf(true);
     try {
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-      const startYear = dates.startDate ? new Date(dates.startDate).getFullYear() : currentDate.getFullYear();
+      const startYear = dates.startDate ? new Date(dates.startDate).getFullYear() : new Date().getFullYear();
       const endYear = dates.endDate ? new Date(dates.endDate).getFullYear() : startYear;
 
       // Logo SENAI
@@ -1381,7 +1388,7 @@ export default function App() {
       if (courseMetrics) {
         doc.text(`Dias Letivos: ${courseMetrics.days}`, 14, summaryY);
         doc.text(`Carga Horária Total: ${courseMetrics.hours}h`, 80, summaryY);
-        doc.text(`Total de Aulas: ${courseMetrics.classes}`, 150, summaryY);
+        doc.text(`Total de Aulas: ${courseMetrics.classes} aulas`, 150, summaryY);
         summaryY += 10;
       }
 
@@ -1617,7 +1624,7 @@ export default function App() {
       if (courseMetrics) {
         pdfDoc.text(`Dias Letivos: ${courseMetrics.days}`, 14, summaryY);
         pdfDoc.text(`Carga Horária Total: ${courseMetrics.hours}h`, 80, summaryY);
-        pdfDoc.text(`Total de Aulas: ${courseMetrics.classes}`, 150, summaryY);
+        pdfDoc.text(`Total de Aulas: ${courseMetrics.classes} aulas`, 150, summaryY);
         summaryY += 10;
       }
 
@@ -1924,16 +1931,17 @@ export default function App() {
                       vacationNames={vacationNames}
                     />
                   ) : (
-                    <GanttChart
-                      startDate={dates.startDate}
-                      endDate={dates.endDate}
-                      curricularUnits={dates.curricularUnits}
-                      holidays={dates.holidays}
-                      recesses={dates.recesses}
-                      vacations={vacationDays}
-                      emendas={dates.emendas}
-                      makeupDays={dates.makeupDays}
-                    />
+                    <GanttChart 
+                startDate={dates.startDate}
+                endDate={dates.endDate}
+                curricularUnits={dates.curricularUnits}
+                holidays={dates.holidays}
+                recesses={dates.recesses}
+                vacations={vacationDays}
+                emendas={dates.emendas}
+                makeupDays={dates.makeupDays}
+                colors={colors}
+            />
                   )}
 
                   {/* Navegação de Mês (apenas se calendário) */}
