@@ -81,7 +81,7 @@ const calculateEndDate = (startDate, totalHours, hoursPerDay, weekDays, holidays
     const dateStr = formatDateToISO(currentDate);
 
     // Condição: É dia de aula (dia da semana e não feriado/emenda/recesso) OU é dia de reposição
-    const isClassDay = weekDays.includes(dayOfWeek) && !holidays.has(dateStr) && !emendas.has(dateStr) && !recesses.has(dateStr);
+    const isClassDay = weekDays.includes(dayOfWeek) && !holidays.has(dateStr) && !emendas.has(dateStr) && !recesses.has(dateStr) && !vacations.has(dateStr);
     const isMakeupDay = makeupDays.has(dateStr);
 
     if (isClassDay || isMakeupDay) {
